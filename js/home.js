@@ -1,6 +1,7 @@
 // js/home.js
-import { UNITS, QUESTION_BANKS } from "./data.js";
-import { getUnitSummary, getStreak } from "./storage.js";
+import { UNITS } from "./data.js";
+import { getAvailableQuestionCount } from "./question-engine.js";
+import { getRewardSummary, getUnitSummary, getStreak } from "./storage.js";
 
 function renderTodayTask() {
   const activeUnits = UNITS.filter((u) => u.available);
@@ -8,8 +9,8 @@ function renderTodayTask() {
   let target = activeUnits[0];
   let lowest = 101;
   for (const u of activeUnits) {
-    const bank = QUESTION_BANKS[u.id] || [];
-    const summary = getUnitSummary(u.id, bank.length);
+    const total = getAvailableQuestionCount(u.id);
+    const summary = getUnitSummary(u.id, total);
     const score = summary.attempts === 0 ? -1 : summary.accuracy;
     if (score < lowest) {
       lowest = score;
@@ -17,13 +18,13 @@ function renderTodayTask() {
     }
   }
 
-  const bank = QUESTION_BANKS[target.id] || [];
-  const summary = getUnitSummary(target.id, bank.length);
+  const total = getAvailableQuestionCount(target.id);
+  const summary = getUnitSummary(target.id, total);
 
   document.getElementById("task-title").textContent = `今天挑戰：${target.title}`;
   document.getElementById("task-desc").textContent =
     summary.attempts === 0
-      ? `共 ${bank.length} 題，第一次挑戰加油！`
+      ? `題庫已擴充到 ${total} 題以上，先學觀念再挑戰！`
       : `目前正確率 ${summary.accuracy}%，再練習一次讓自己更進步！`;
   const btn = document.getElementById("task-btn");
   btn.href = `practice.html?unit=${target.id}`;
@@ -37,12 +38,12 @@ function renderOverallProgress() {
   let totalQuestions = 0;
 
   for (const u of activeUnits) {
-    const bank = QUESTION_BANKS[u.id] || [];
-    const summary = getUnitSummary(u.id, bank.length);
+    const total = getAvailableQuestionCount(u.id);
+    const summary = getUnitSummary(u.id, total);
     totalAttempts += summary.attempts;
     totalCorrect += summary.correct;
-    totalCompleted += Math.round((summary.progress / 100) * bank.length);
-    totalQuestions += bank.length;
+    totalCompleted += Math.round((summary.progress / 100) * total);
+    totalQuestions += total;
   }
 
   const streak = getStreak();
@@ -61,14 +62,11 @@ function renderUnitGrid() {
   grid.innerHTML = "";
 
   for (const unit of UNITS) {
-    const bank = QUESTION_BANKS[unit.id] || [];
-    const summary = unit.available ? getUnitSummary(unit.id, bank.length) : null;
+    const total = getAvailableQuestionCount(unit.id);
+    const summary = unit.available ? getUnitSummary(unit.id, total) : null;
 
-    const card = document.createElement(unit.available ? "a" : "div");
+    const card = document.createElement("div");
     card.className = `unit-card ${unit.available ? "available" : "locked"}`;
-    if (unit.available) {
-      card.href = `practice.html?unit=${unit.id}`;
-    }
 
     let badge = "";
     if (!unit.available) {
@@ -83,19 +81,56 @@ function renderUnitGrid() {
       ${badge}
       <div class="unit-icon">${unit.icon}</div>
       <h3>${unit.title}</h3>
-      <div class="unit-meta">${unit.semester}${unit.available ? ` · 共 ${bank.length} 題` : ""}</div>
+      <div class="unit-meta">${unit.semester}${unit.available ? ` · 動態題庫 ${total} 題+` : " · 基礎教學已開放"}</div>
       <p class="unit-desc">${unit.description}</p>
       ${
         unit.available
           ? `<div class="progress-bar-track"><div class="progress-bar-fill" style="width:${summary.progress}%;"></div></div>
-             <div class="unit-meta">正確率 ${summary.accuracy}% ・ 完成度 ${summary.progress}%</div>`
-          : `<div class="unit-meta">準備中，敬請期待！</div>`
+             <div class="unit-meta">正確率 ${summary.accuracy}% ・ 完成度 ${summary.progress}%</div>
+             <div class="unit-actions">
+               <a class="btn secondary" href="lesson.html?unit=${unit.id}">先學習</a>
+               <a class="btn" href="practice.html?unit=${unit.id}">開始練習</a>
+             </div>`
+          : `<div class="unit-meta">先閱讀基礎教學，題庫準備中。</div>
+             <div class="unit-actions">
+               <a class="btn secondary" href="lesson.html?unit=${unit.id}">教學模式</a>
+               <button class="btn" disabled>練習待開放</button>
+             </div>`
       }
     `;
     grid.appendChild(card);
   }
 }
 
+function renderRewards() {
+  const rewards = getRewardSummary();
+  document.getElementById("reward-title").textContent = rewards.levelInfo.title;
+  document.getElementById("reward-level").textContent = rewards.levelInfo.level;
+  document.getElementById("reward-xp").textContent = rewards.xp;
+  document.getElementById("reward-stars").textContent = rewards.stars;
+  document.getElementById("reward-progress-bar").style.width = `${rewards.levelInfo.progress}%`;
+
+  const badgeList = document.getElementById("badge-list");
+  badgeList.innerHTML = rewards.badges.length
+    ? rewards.badges.map((badge) => `<span class="mini-badge">🏅 ${badge}</span>`).join("")
+    : `<span class="empty-hint">完成每日任務就能收集徽章！</span>`;
+
+  document.getElementById("mission-list").innerHTML = rewards.missions
+    .map(
+      (mission) => `
+        <div class="mission-item ${mission.done ? "done" : ""}">
+          <div>
+            <strong>${mission.done ? "✅" : "⬜"} ${mission.title}</strong>
+            <div class="unit-meta">${mission.description}</div>
+          </div>
+          <span>${Math.min(mission.value, mission.target)} / ${mission.target}</span>
+        </div>
+      `
+    )
+    .join("");
+}
+
 renderTodayTask();
 renderOverallProgress();
+renderRewards();
 renderUnitGrid();

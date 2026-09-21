@@ -1,6 +1,13 @@
 // js/parent.js
-import { UNITS, QUESTION_BANKS } from "./data.js";
-import { getUnitSummary, getStreak, getWrongBook, resetState } from "./storage.js";
+import { UNITS } from "./data.js";
+import { getAvailableQuestionCount } from "./question-engine.js";
+import {
+  getRewardSummary,
+  getUnitSummary,
+  getStreak,
+  getWrongBook,
+  resetState,
+} from "./storage.js";
 import { verifyParentPassword } from "./parent-auth.js";
 
 let isParentAuthorized = false;
@@ -8,6 +15,7 @@ let isParentAuthorized = false;
 function render() {
   const streak = getStreak();
   const wrongBook = getWrongBook();
+  const rewards = getRewardSummary();
   const activeUnits = UNITS.filter((u) => u.available);
 
   let totalAttempts = 0;
@@ -17,8 +25,7 @@ function render() {
   tbody.innerHTML = "";
 
   for (const unit of activeUnits) {
-    const bank = QUESTION_BANKS[unit.id] || [];
-    const summary = getUnitSummary(unit.id, bank.length);
+    const summary = getUnitSummary(unit.id, getAvailableQuestionCount(unit.id));
     totalAttempts += summary.attempts;
     if (summary.lastDate && (!latestDate || summary.lastDate > latestDate)) {
       latestDate = summary.lastDate;
@@ -39,6 +46,26 @@ function render() {
   document.getElementById("p-last-date").textContent = latestDate || "—";
   document.getElementById("p-total-attempts").textContent = totalAttempts;
   document.getElementById("p-wrong-count").textContent = wrongBook.length;
+  document.getElementById("p-xp").textContent = rewards.xp;
+  document.getElementById("p-stars").textContent = rewards.stars;
+  document.getElementById("p-title").textContent = rewards.levelInfo.title;
+  document.getElementById("p-level").textContent = rewards.levelInfo.level;
+  document.getElementById("p-mission-list").innerHTML = rewards.missions
+    .map(
+      (mission) => `
+        <div class="mission-item ${mission.done ? "done" : ""}">
+          <div>
+            <strong>${mission.done ? "✅" : "⬜"} ${escapeHtml(mission.title)}</strong>
+            <div class="unit-meta">${escapeHtml(mission.description)}</div>
+          </div>
+          <span>${Math.min(mission.value, mission.target)} / ${mission.target}</span>
+        </div>
+      `
+    )
+    .join("");
+  document.getElementById("p-badge-list").innerHTML = rewards.badges.length
+    ? rewards.badges.map((badge) => `<span class="mini-badge">🏅 ${escapeHtml(badge)}</span>`).join("")
+    : `<span class="empty-hint">尚未取得徽章。</span>`;
 
   const wrongArea = document.getElementById("wrong-book-area");
   if (wrongBook.length === 0) {

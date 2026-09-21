@@ -7,6 +7,13 @@ import {
   mergeWrongBook,
   todayString,
 } from "./logic.js";
+import {
+  applyAnswerReward,
+  applyLessonReward,
+  evaluateMissions,
+  getLevelInfo,
+  normalizeRewards,
+} from "./rewards.js";
 
 const STORAGE_KEY = "yue_math_g6_v1";
 
@@ -15,6 +22,7 @@ function defaultState() {
     streak: { count: 0, lastDate: null },
     units: {}, // unitId -> { attempts, correct, bestAccuracy, lastDate, completedQuestionIds: [] }
     wrongBook: [], // { unitId, questionId, prompt, yourAnswer, correctAnswer, explanation, date }
+    rewards: normalizeRewards(),
   };
 }
 
@@ -23,7 +31,11 @@ export function loadState() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState();
     const parsed = JSON.parse(raw);
-    return { ...defaultState(), ...parsed };
+    const state = { ...defaultState(), ...parsed };
+    state.rewards = normalizeRewards(state.rewards);
+    state.units = state.units || {};
+    state.wrongBook = Array.isArray(state.wrongBook) ? state.wrongBook : [];
+    return state;
   } catch (e) {
     console.warn("讀取學習紀錄失敗，使用預設值。", e);
     return defaultState();
@@ -60,6 +72,9 @@ export function recordAnswer(payload) {
   const state = loadState();
   const today = todayString();
   const unit = getUnitState(state, payload.unitId);
+  const wasWrong = state.wrongBook.some(
+    (w) => w.unitId === payload.unitId && w.questionId === payload.questionId
+  );
 
   unit.attempts += 1;
   if (payload.isCorrect) unit.correct += 1;
@@ -89,8 +104,16 @@ export function recordAnswer(payload) {
   );
   state.streak.lastDate = today;
 
+  const rewardResult = applyAnswerReward(state.rewards, {
+    unitId: payload.unitId,
+    questionId: payload.questionId,
+    isCorrect: payload.isCorrect,
+    fixedWrong: wasWrong && payload.isCorrect,
+  });
+  state.rewards = rewardResult.rewards;
+
   saveState(state);
-  return state;
+  return { ...state, rewardMessage: rewardResult.message };
 }
 
 export function getUnitSummary(unitId, totalQuestions) {
@@ -124,4 +147,26 @@ export function getWrongBook() {
 
 export function getAllUnitStates() {
   return loadState().units;
+}
+
+export function getRecentQuestionIds(unitId) {
+  const state = loadState();
+  return state.rewards.recentQuestionIds[unitId] || [];
+}
+
+export function recordLessonRead(unitId) {
+  const state = loadState();
+  const result = applyLessonReward(state.rewards, unitId);
+  state.rewards = result.rewards;
+  saveState(state);
+  return { ...state, lessonMessage: result.message, firstReadToday: result.firstReadToday };
+}
+
+export function getRewardSummary() {
+  const rewards = loadState().rewards;
+  return {
+    ...rewards,
+    levelInfo: getLevelInfo(rewards.xp),
+    missions: evaluateMissions(rewards),
+  };
 }

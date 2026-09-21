@@ -1,12 +1,23 @@
 // js/practice.js
-import { getUnitById, QUESTION_BANKS } from "./data.js";
+import { getUnitById } from "./data.js";
 import { gradeAnswer } from "./logic.js";
-import { recordAnswer, getUnitSummary } from "./storage.js";
+import {
+  getRecentQuestionIds,
+  getUnitSummary,
+  recordAnswer,
+} from "./storage.js";
+import {
+  DIFFICULTY_LABELS,
+  PRACTICE_QUESTION_COUNT,
+  getAvailableQuestionCount,
+  selectPracticeQuestions,
+} from "./question-engine.js";
 
 const params = new URLSearchParams(window.location.search);
 const unitId = params.get("unit");
 const unit = getUnitById(unitId);
-const questions = QUESTION_BANKS[unitId];
+let selectedDifficulty = params.get("difficulty") || "smart";
+let questions = [];
 
 const questionArea = document.getElementById("question-area");
 const summaryArea = document.getElementById("summary-area");
@@ -18,21 +29,44 @@ let currentIndex = 0;
 let sessionCorrect = 0;
 let answeredCurrent = false;
 
-if (!unit || !questions) {
+if (!unit || !unit.available) {
   questionArea.innerHTML = `
-    <p>⚠️ 找不到這個單元的練習題，可能是連結錯誤。</p>
+    <p>⚠️ 這個單元目前尚未開放練習，請先閱讀教學內容。</p>
     <a class="btn" href="index.html">回首頁</a>
   `;
 } else {
   document.getElementById("unit-title").textContent = `${unit.icon} ${unit.title}`;
   document.title = `${unit.title} | 林小玥六年級數學學習站`;
+  document.getElementById("ddl-difficulty").value = selectedDifficulty;
+  document.getElementById("ddl-difficulty").addEventListener("change", (event) => {
+    selectedDifficulty = event.target.value;
+    startPractice();
+  });
+  document.getElementById("btn-restart-practice").addEventListener("click", startPractice);
+  startPractice();
+}
+
+function startPractice() {
+  const total = getAvailableQuestionCount(unitId);
+  const summary = getUnitSummary(unitId, total);
+  questions = selectPracticeQuestions({
+    unitId,
+    difficulty: selectedDifficulty,
+    count: PRACTICE_QUESTION_COUNT,
+    recentQuestionIds: getRecentQuestionIds(unitId),
+    summary,
+  });
+  currentIndex = 0;
+  sessionCorrect = 0;
+  questionArea.style.display = "block";
+  summaryArea.style.display = "none";
   renderQuestion();
 }
 
 function renderQuestion() {
   answeredCurrent = false;
   const q = questions[currentIndex];
-  progressLabel.textContent = `第 ${currentIndex + 1} / ${questions.length} 題`;
+  progressLabel.textContent = `第 ${currentIndex + 1} / ${questions.length} 題（${DIFFICULTY_LABELS[q.selectedDifficulty || q.difficulty]}）`;
   progressBar.style.width = `${(currentIndex / questions.length) * 100}%`;
   updateLiveAccuracy();
 
@@ -106,7 +140,7 @@ function handleAnswer(userAnswer, element) {
   const isCorrect = gradeAnswer(q, userAnswer);
   if (isCorrect) sessionCorrect += 1;
 
-  recordAnswer({
+  const state = recordAnswer({
     unitId,
     questionId: q.id,
     prompt: q.prompt,
@@ -137,6 +171,12 @@ function handleAnswer(userAnswer, element) {
     ? "✅ 答對了，太棒了！"
     : `❌ 答錯了，正確答案是 ${q.answer}`;
   document.getElementById("feedback-explanation").textContent = `解析：${q.explanation}`;
+  if (state.rewardMessage) {
+    const reward = document.createElement("div");
+    reward.className = "explanation reward-feedback";
+    reward.textContent = `鼓勵：${state.rewardMessage}`;
+    feedbackBox.appendChild(reward);
+  }
 
   document.getElementById("next-btn").style.display = "inline-block";
   progressBar.style.width = `${((currentIndex + 1) / questions.length) * 100}%`;
@@ -156,7 +196,7 @@ function showSummary() {
   progressBar.style.width = "100%";
 
   const accuracy = Math.round((sessionCorrect / questions.length) * 100);
-  const summary = getUnitSummary(unitId, questions.length);
+  const summary = getUnitSummary(unitId, getAvailableQuestionCount(unitId));
   const emoji = accuracy >= 80 ? "🏆" : accuracy >= 50 ? "👍" : "💪";
 
   summaryArea.innerHTML = `
@@ -178,17 +218,14 @@ function showSummary() {
     </div>
     <div class="practice-footer" style="justify-content:center;">
       <button class="btn secondary" id="retry-btn">再練習一次</button>
+      <a class="btn secondary" href="lesson.html?unit=${unitId}">回教學複習</a>
       <a class="btn outline" href="index.html">回首頁</a>
       <a class="btn" href="parent.html">查看家長進度檢視</a>
     </div>
   `;
 
   document.getElementById("retry-btn").addEventListener("click", () => {
-    currentIndex = 0;
-    sessionCorrect = 0;
-    questionArea.style.display = "block";
-    summaryArea.style.display = "none";
-    renderQuestion();
+    startPractice();
   });
 }
 
