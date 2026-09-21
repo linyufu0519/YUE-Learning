@@ -20,6 +20,29 @@
   </header>
 
   <main class="container">
+    <section class="card parent-lock" id="parent-lock">
+      <div class="lock-icon" aria-hidden="true">🔒</div>
+      <h2>家長專區</h2>
+      <p>請輸入家長密碼，才能查看學習進度與管理紀錄。</p>
+      <form id="parent-login-form" class="parent-login-form">
+        <label for="txt-parent-password">家長密碼</label>
+        <div class="input-row">
+          <input
+            type="password"
+            id="txt-parent-password"
+            inputmode="numeric"
+            autocomplete="current-password"
+            required
+            aria-describedby="parent-password-error"
+            placeholder="請輸入密碼"
+          />
+          <button class="btn" type="submit" id="btn-parent-login">進入家長專區</button>
+        </div>
+        <p class="password-error" id="parent-password-error" role="alert" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <div id="parent-dashboard" hidden>
     <section class="card">
       <h2 class="section-title" style="margin-top:0;">學習總覽</h2>
       <div class="progress-summary">
@@ -70,6 +93,7 @@
     <section class="danger-zone">
       <button class="btn danger" id="reset-btn">清除所有學習紀錄</button>
     </section>
+    </div>
   </main>
 
   <footer class="site-footer">

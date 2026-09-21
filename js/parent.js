@@ -1,6 +1,9 @@
 // js/parent.js
 import { UNITS, QUESTION_BANKS } from "./data.js";
 import { getUnitSummary, getStreak, getWrongBook, resetState } from "./storage.js";
+import { verifyParentPassword } from "./parent-auth.js";
+
+let isParentAuthorized = false;
 
 function render() {
   const streak = getStreak();
@@ -67,11 +70,38 @@ function escapeHtml(str) {
     .replace(/>/g, "&gt;");
 }
 
+const loginForm = document.getElementById("parent-login-form");
+const passwordInput = document.getElementById("txt-parent-password");
+const passwordError = document.getElementById("parent-password-error");
+const parentLock = document.getElementById("parent-lock");
+const parentDashboard = document.getElementById("parent-dashboard");
+
+loginForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+
+  if (!verifyParentPassword(passwordInput.value)) {
+    passwordError.textContent = "密碼錯誤，請重新輸入。";
+    passwordInput.value = "";
+    passwordInput.focus();
+    return;
+  }
+
+  isParentAuthorized = true;
+  passwordError.textContent = "";
+  passwordInput.value = "";
+  parentLock.hidden = true;
+  parentDashboard.hidden = false;
+  render();
+});
+
 document.getElementById("reset-btn").addEventListener("click", () => {
-  if (confirm("確定要清除所有學習紀錄嗎？此動作無法復原。")) {
+  if (
+    isParentAuthorized &&
+    confirm("確定要清除所有學習紀錄嗎？此動作無法復原。")
+  ) {
     resetState();
     render();
   }
 });
 
-render();
+passwordInput.focus();

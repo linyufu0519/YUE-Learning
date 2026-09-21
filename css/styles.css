@@ -432,6 +432,56 @@ a {
 }
 
 /* ---------- 家長頁 ---------- */
+.parent-lock {
+  max-width: 560px;
+  margin: 40px auto 0;
+  text-align: center;
+}
+
+.parent-lock .lock-icon {
+  font-size: 3rem;
+}
+
+.parent-lock h2 {
+  margin: 8px 0;
+}
+
+.parent-lock p {
+  color: var(--color-muted);
+}
+
+.parent-login-form {
+  margin-top: 20px;
+  text-align: left;
+}
+
+.parent-login-form label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+.parent-login-form input[type="password"] {
+  flex: 1;
+  min-width: 180px;
+  padding: 12px 14px;
+  border: 2px solid #eee0cf;
+  border-radius: 12px;
+  font-size: 1.05rem;
+}
+
+.parent-login-form input[type="password"]:focus {
+  border-color: var(--color-primary);
+  outline: 3px solid rgba(255, 138, 91, 0.2);
+}
+
+.password-error {
+  min-height: 1.4em;
+  margin: 8px 0 0;
+  color: var(--color-error) !important;
+  font-weight: 700;
+}
+
 table.parent-table {
   width: 100%;
   border-collapse: collapse;
