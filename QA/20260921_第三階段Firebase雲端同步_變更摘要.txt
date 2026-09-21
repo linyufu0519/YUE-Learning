@@ -1,0 +1,112 @@
+================================================================================
+  林小玥六年級數學學習站 — 第三階段：Firebase 雲端同步 變更摘要
+  日期：2026-09-21
+================================================================================
+
+【USER 需求】
+  將網站升級為可選用 Firebase 雲端同步，讓親子在不同電腦使用同一組帳號後
+  能查看同一份學習進度。使用者尚未提供 firebaseConfig，需求要求先完成可
+  填入設定的功能與完整操作說明，不能卡住等待設定值；且未設定/未登入/離線
+  /Firebase 發生錯誤時，必須優雅退回既有 localStorage 離線模式，不能噴錯，
+  也不能破壞既有離線功能。不可提交任何私密憑證，維持純前端、GitHub Pages
+  靜態部署，不新增 npm 建置依賴。
+
+--------------------------------------------------------------------------------
+
+【影響範圍】
+
+  程式位置一：js/storage.js
+  函式／區塊：saveState / resetState / 新增 onStateChange、replaceState
+  說明：localStorage 存取層，是所有答題/教學閱讀/獎勵/清除紀錄的單一寫入路徑
+  異動：新增狀態變更監聽機制，讓 sync-manager.js 可以在不修改 storage.js
+        內部邏輯的情況下得知每次寫入，決定是否推送到 Firestore；resetState
+        改為呼叫 saveState(defaultState()) 而非單純 removeItem，確保清空
+        紀錄也會觸發通知（讓雲端同步得知要把清空狀態寫回 Firestore）。
+
+  修改前：
+    export function saveState(state) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+    export function resetState() {
+      localStorage.removeItem(STORAGE_KEY);
+      return defaultState();
+    }
+
+  修改後：
+    export function saveState(state) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      notifyListeners(state);
+    }
+    export function resetState() {
+      const state = defaultState();
+      saveState(state);
+      return state;
+    }
+    export function replaceState(newState) { ... } // 供雲端合併寫回使用
+
+  ─────────────────────────────────────────────────────────────────────────────
+
+  程式位置二：js/firebase-config-status.js（新增）
+  函式／區塊：isFirebaseConfigured(config)
+  說明：純函式判斷 Firebase 設定是否「看起來有效」（欄位齊全且非 YOUR_ 佔位字串）
+  異動：作為整站「是否啟用雲端同步」的唯一判斷依據，可在 Node 測試中直接驗證。
+
+  ─────────────────────────────────────────────────────────────────────────────
+
+  程式位置三：js/sync-logic.js（新增）
+  函式／區塊：mergeState / mergeWrongBooks / buildCloudPayload / describeSyncStatus / mapAuthError
+  說明：雲端同步的純邏輯層，不接觸 DOM 或 Firebase SDK
+  異動：設計本機與雲端資料的合併規則——單元進度取較大值、完成題目取聯集、
+        錯題本同題取日期較新者、連續天數取較新日期、獎勵 xp/star 取較大值、
+        徽章與每日任務聯集；並提供狀態文字與 Auth 錯誤訊息的繁體中文轉換。
+
+  ─────────────────────────────────────────────────────────────────────────────
+
+  程式位置四：js/cloud-sync.js、js/sync-manager.js（新增）
+  說明：cloud-sync.js 負責實際的 Firebase Auth/Firestore CDN 串接（動態 import，
+        未設定時完全不發網路請求）；sync-manager.js 協調 storage.js 與
+        cloud-sync.js，處理登入合併、即時同步、狀態廣播。
+  異動：initSync() 全程包在 try/catch 中，任何初始化或 SDK 載入失敗都會
+        安全回退為 offline-no-config 狀態，符合「不能噴錯」的需求。
+
+  ─────────────────────────────────────────────────────────────────────────────
+
+  程式位置五：index.html / js/home.js、parent.html / js/parent.js
+  說明：新增「帳號與雲端同步」UI（首頁）與同步狀態列（家長頁）
+  異動：首頁新增註冊/登入/登出表單與狀態文字；家長頁在密碼鎖之外新增
+        一行同步狀態顯示（不含學習資料，家長密碼鎖與帳密登入為兩套獨立機制）。
+
+  ─────────────────────────────────────────────────────────────────────────────
+
+  程式位置六：.gitignore、js/firebase-config.example.js、js/firebase-config.js
+  說明：真實 Firebase 設定與可 commit 範本分離
+  異動：`.gitignore` 排除 js/firebase-config.js；提供範本檔供複製；
+        FIREBASE_SETUP.md 說明若要在 GitHub Pages 正式站台啟用，可用
+        `git add -f` 明確加入該單一檔案（firebaseConfig 本身設計上可公開，
+        安全性由 Firestore Security Rules 與 Authentication 把關）。
+
+--------------------------------------------------------------------------------
+
+【未修改項目】
+  practice.js / question-engine.js / rewards.js / lessons.js
+  說明：第三階段不涉及題庫、教學內容或獎勵規則本身的變動，僅透過
+        storage.js 的 onStateChange 掛勾把既有寫入路徑接到雲端同步，
+        不需要修改這些檔案的內部邏輯。
+
+  package.json
+  說明：未新增任何 npm 相依套件，維持零建置流程，符合純靜態部署需求。
+
+--------------------------------------------------------------------------------
+
+【測試建議】
+  1. 完全不設定 js/firebase-config.js（或內容為範本佔位字串）：確認首頁/
+     練習/教學/家長頁功能與同步狀態文字皆與離線版一致，不出現任何錯誤。
+  2. 設定完整 firebaseConfig 但裝置離線：確認 initSync() 能安全回退，
+     不阻塞頁面載入。
+  3. 兩台裝置以同一組帳號分別練習後登入：驗證合併後兩邊進度都保留、
+     錯題本與徽章聯集、連續天數與 XP 正確更新。
+  4. 家長頁清除所有學習紀錄：確認已登入時雲端資料也一併清空。
+  5. node --test tests/：確認 firebase-config-status.test.js、
+     sync-logic.test.js、storage-sync.test.js 與既有測試全數通過。
+
+================================================================================
