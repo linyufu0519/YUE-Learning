@@ -25,7 +25,7 @@ if (!unit || !questions) {
   `;
 } else {
   document.getElementById("unit-title").textContent = `${unit.icon} ${unit.title}`;
-  document.title = `${unit.title} | 六年級數學學習站`;
+  document.title = `${unit.title} | 林小玥六年級數學學習站`;
   renderQuestion();
 }
 
