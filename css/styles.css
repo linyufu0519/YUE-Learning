@@ -605,6 +605,37 @@ a {
   outline: 3px solid rgba(255, 138, 91, 0.2);
 }
 
+#auth-form input[type="email"],
+#auth-form input[type="password"] {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid #eee0cf;
+  border-radius: 12px;
+  font-size: 1.05rem;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+}
+
+#auth-form input:focus {
+  border-color: var(--color-primary);
+  outline: 3px solid rgba(255, 138, 91, 0.2);
+}
+
+#auth-form input:disabled {
+  background: #f5f0e8;
+  color: var(--color-muted);
+}
+
+.sync-status {
+  font-weight: 700;
+  color: var(--color-primary);
+  margin: 4px 0 14px;
+}
+
+#parent-sync-banner {
+  margin-bottom: 16px;
+}
+
 .password-error {
   min-height: 1.4em;
   margin: 8px 0 0;

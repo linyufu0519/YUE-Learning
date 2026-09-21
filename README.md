@@ -15,7 +15,8 @@
   - 練習結束的結算畫面（答對題數、正確率、單元完成度）
 - 📖 **教學模式**：所有單元卡片都有「先學習／教學模式」入口。分數乘法與分數除法提供概念、步驟、常見錯誤、例題解析、自我檢查；其他單元提供基礎介紹，避免只顯示敬請期待。
 - 💾 **本機學習紀錄**：使用 `localStorage` 保存各單元作答次數、正確率、完成度、連續學習天數、錯題本、最近出題記錄、教學閱讀紀錄與獎勵資料。所有資料**只存在使用者瀏覽器**，不會上傳到任何伺服器。
-- 👨‍👩‍👧 **家長進度檢視頁**（`parent.html`）：預設家長密碼為 `8888`，驗證通過後才能查看學習天數、最近學習日期、各單元作答狀況、完整錯題本（含解析）、XP、星星、稱號、徽章與每日任務狀態，以及使用具二次確認的「清除所有學習紀錄」功能。
+- 👨‍👩‍👧 **家長進度檢視頁**（`parent.html`）：預設家長密碼為 `8888`，驗證通過後才能查看學習天數、最近學習日期、各單元作答狀況、完整錯題本（含解析）、XP、星星、稱號、徽章與每日任務狀態，以及使用具二次確認的「清除所有學習紀錄」功能。頁面上方一律顯示目前雲端同步狀態（離線／已登入哪個帳號），不需密碼即可看到，方便家長快速確認裝置狀態。
+- ☁️ **選用的雲端同步（第三階段）**：可選擇性設定 Firebase（Auth + Firestore），讓親子在不同電腦用同一組帳號登入後看到同一份學習進度。**這是純粹的加分功能**：不設定、未登入、離線或 Firebase 發生任何錯誤時，網站會自動且安全地退回目前的 localStorage 離線模式，首頁／練習／教學／獎勵／家長頁（含 8888 密碼鎖）都與離線版完全一致，不會出現任何錯誤畫面。詳細設定步驟見 [`FIREBASE_SETUP.md`](./FIREBASE_SETUP.md)。
 
 ## 專案結構
 
@@ -31,18 +32,28 @@ js/
   question-engine.js  # 動態題目產生、隨機抽題、難度與智慧練習
   rewards.js          # XP、星星、徽章、每日任務與等級稱號
   logic.js            # 純函式邏輯（分數解析、批改、正確率、連續天數、進度、錯題本）
-  storage.js          # localStorage 存取層（相容舊資料並保存獎勵/閱讀/題目紀錄）
+  storage.js          # localStorage 存取層（相容舊資料、保存獎勵/閱讀/題目紀錄、狀態變更通知）
   parent-auth.js       # 家長密碼設定與驗證邏輯（預設密碼集中管理）
-  home.js             # 首頁互動邏輯
+  firebase-config.example.js # Firebase 設定範本（可 commit，內容為佔位字串）
+  firebase-config.js  # 真實 Firebase 設定（已 gitignore，需自行複製範本並填入）
+  firebase-config-status.js # 判斷 Firebase 設定是否有效的純函式
+  sync-logic.js        # 雲端同步純邏輯：狀態合併規則、同步 payload、狀態文字、錯誤訊息轉繁中
+  cloud-sync.js         # 瀏覽器端 Firebase Auth/Firestore 串接（CDN 動態載入，未設定時不發任何網路請求）
+  sync-manager.js       # 協調 storage.js 與 cloud-sync.js：登入合併、答題/清空即時同步、狀態廣播
+  home.js             # 首頁互動邏輯（含帳號與雲端同步 UI）
   practice.js          # 練習頁互動邏輯
   lesson.js            # 教學頁互動與閱讀紀錄
-  parent.js            # 家長頁互動邏輯
+  parent.js            # 家長頁互動邏輯（含雲端同步狀態顯示）
 tests/
   logic.test.js        # 針對 logic.js 的單元測試（Node 內建測試框架）
   storage.test.js       # 針對 storage.js 的單元測試（以記憶體版 localStorage 模擬）
+  storage-sync.test.js  # storage.js 狀態變更通知、resetState 清空同步、replaceState 合併寫回
   question-engine.test.js # 動態題庫、難度篩選、避免重複、智慧練習
   rewards.test.js      # 每日任務、XP、星星、教學閱讀獎勵
   lesson.test.js       # 確認所有單元都有教學內容
+  parent-auth.test.js   # 家長密碼驗證邏輯
+  firebase-config-status.test.js # Firebase 設定偵測（佔位字串/缺欄位/完整設定）
+  sync-logic.test.js    # 雲端同步合併規則、payload、狀態文字、錯誤訊息
 package.json          # 測試指令設定（無任何 npm 相依套件）
 ```
 
@@ -79,7 +90,17 @@ npm test
 node --test tests/
 ```
 
-目前測試涵蓋分數判定、localStorage 相容、題目隨機/難度篩選、獎勵進度與教學閱讀紀錄。
+目前測試涵蓋分數判定、localStorage 相容、題目隨機/難度篩選、獎勵進度、教學閱讀紀錄、家長密碼邏輯，以及第三階段的 Firebase 設定偵測與雲端資料合併規則（共 47 項測試）。雲端同步測試全程使用假資料驗證純函式邏輯，**不會連線到真實 Firebase**，因此在沒有網路或沒有 Firebase 專案的環境下也能正常執行。
+
+## 雲端同步（選用功能）
+
+第三階段加入了「選用的」Firebase 雲端同步，讓親子可以在不同電腦用同一組帳號登入後看到同一份學習進度。重點原則：
+
+- **離線優先**：完全不設定 Firebase 也能正常使用全部功能，這是預設狀態。
+- **優雅回退**：只要沒有設定、設定不完整、網路不通或 Firebase 發生任何錯誤，網站一律安全退回目前的 localStorage 離線模式，不會出現錯誤畫面，首頁會顯示「離線模式，尚未設定雲端同步」。
+- **不覆蓋、不遺失**：登入時會把本機與雲端資料「合併」而非覆蓋——單元進度取較大值、已完成題目取聯集、錯題本與徽章取聯集、連續天數與每日任務取較新/較大值。
+- **狀態透明**：首頁「帳號與雲端同步」卡片與家長頁上方的同步狀態列，隨時顯示目前是離線、已登入、同步中還是發生錯誤。
+- 完整設定步驟（建立 Firebase 專案、啟用 Email/Password、建立 Firestore 與安全規則、部署注意事項）請見 [`FIREBASE_SETUP.md`](./FIREBASE_SETUP.md)。
 
 ## 部署到 GitHub Pages
 
@@ -99,6 +120,7 @@ node --test tests/
   - 舊版紀錄會自動補上第二階段新增的 `rewards`、教學閱讀與最近出題欄位，不需要手動清除資料。
 - GitHub Pages 為純靜態託管，不需要任何伺服器端設定或環境變數。
 - 家長專區預設密碼集中定義於 `js/parent-auth.js` 的 `DEFAULT_PARENT_PASSWORD`，預設值為 `8888`。這是離線純前端的防誤入機制，密碼可從網站原始碼查到，不能取代後端身分驗證；若需要真正的存取控制，必須導入後端驗證。
+- 雲端同步的 `js/firebase-config.js` 已列入 `.gitignore`，一般 `git push` 不會把真實金鑰帶到遠端；若要讓正式部署的 GitHub Pages 也能使用雲端同步，需要額外操作，詳見 `FIREBASE_SETUP.md`「步驟六」。未做這一步時，正式站台會維持離線模式，功能完全不受影響。
 
 ## 後續可擴充方向
 

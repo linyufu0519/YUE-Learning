@@ -20,6 +20,10 @@
   </header>
 
   <main class="container">
+    <div class="card" id="parent-sync-banner">
+      <strong>雲端同步狀態：</strong> <span id="parent-sync-text">初始化中…</span>
+    </div>
+
     <section class="card parent-lock" id="parent-lock">
       <div class="lock-icon" aria-hidden="true">🔒</div>
       <h2>家長專區</h2>
@@ -109,6 +113,7 @@
 
     <section class="danger-zone">
       <button class="btn danger" id="reset-btn">清除所有學習紀錄</button>
+      <p class="unit-meta">若目前已登入雲端同步帳號，清除後也會一併清空雲端資料。</p>
     </section>
     </div>
   </main>

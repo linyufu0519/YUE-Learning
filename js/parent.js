@@ -9,6 +9,8 @@ import {
   resetState,
 } from "./storage.js";
 import { verifyParentPassword } from "./parent-auth.js";
+import { describeSyncStatus } from "./sync-logic.js";
+import { initSync, onSyncStatusChange } from "./sync-manager.js";
 
 let isParentAuthorized = false;
 
@@ -132,3 +134,14 @@ document.getElementById("reset-btn").addEventListener("click", () => {
 });
 
 passwordInput.focus();
+
+// 雲端同步狀態一律顯示（不含學習內容，不需要家長密碼即可看到），
+// 讓家長在輸入密碼前就知道這台裝置目前是離線還是已登入雲端帳號。
+onSyncStatusChange((status) => {
+  document.getElementById("parent-sync-text").textContent = describeSyncStatus(status);
+  // 已登入雲端且資料剛完成合併/同步時，若家長專區已解鎖，重新整理畫面顯示最新資料。
+  if (isParentAuthorized && (status.mode === "synced" || status.mode === "error")) {
+    render();
+  }
+});
+initSync();

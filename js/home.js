@@ -2,6 +2,14 @@
 import { UNITS } from "./data.js";
 import { getAvailableQuestionCount } from "./question-engine.js";
 import { getRewardSummary, getUnitSummary, getStreak } from "./storage.js";
+import { describeSyncStatus } from "./sync-logic.js";
+import {
+  initSync,
+  onSyncStatusChange,
+  registerAccount,
+  loginAccount,
+  logoutAccount,
+} from "./sync-manager.js";
 
 function renderTodayTask() {
   const activeUnits = UNITS.filter((u) => u.available);
@@ -134,3 +142,54 @@ renderTodayTask();
 renderOverallProgress();
 renderRewards();
 renderUnitGrid();
+
+// ---- 帳號與雲端同步 ----
+function setupAccountUI() {
+  const statusEl = document.getElementById("sync-status");
+  const errorEl = document.getElementById("auth-error");
+  const form = document.getElementById("auth-form");
+  const emailInput = document.getElementById("txt-email");
+  const passwordInput = document.getElementById("txt-password");
+  const btnLogin = document.getElementById("btn-login");
+  const btnRegister = document.getElementById("btn-register");
+  const btnLogout = document.getElementById("btn-logout");
+
+  onSyncStatusChange((status) => {
+    statusEl.textContent = describeSyncStatus(status);
+    const signedIn = status.mode === "synced" || status.mode === "syncing";
+    btnLogout.style.display = signedIn ? "" : "none";
+    btnLogin.style.display = signedIn ? "none" : "";
+    btnRegister.style.display = signedIn ? "none" : "";
+    emailInput.disabled = signedIn;
+    passwordInput.disabled = signedIn;
+  });
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    errorEl.textContent = "";
+    const result = await loginAccount(emailInput.value.trim(), passwordInput.value);
+    if (!result.ok) {
+      errorEl.textContent = result.message;
+      return;
+    }
+    passwordInput.value = "";
+  });
+
+  btnRegister.addEventListener("click", async () => {
+    errorEl.textContent = "";
+    const result = await registerAccount(emailInput.value.trim(), passwordInput.value);
+    if (!result.ok) {
+      errorEl.textContent = result.message;
+      return;
+    }
+    passwordInput.value = "";
+  });
+
+  btnLogout.addEventListener("click", async () => {
+    await logoutAccount();
+  });
+
+  initSync();
+}
+
+setupAccountUI();

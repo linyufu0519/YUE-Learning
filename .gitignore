@@ -1,3 +1,7 @@
 node_modules/
 .DS_Store
 *.log
+
+# 真正的 Firebase 設定值（含 apiKey 等）。範本檔請參考 js/firebase-config.example.js，
+# 若要讓 GitHub Pages 部署啟用雲端同步，請參考 FIREBASE_SETUP.md 以 `git add -f` 加入。
+js/firebase-config.js
