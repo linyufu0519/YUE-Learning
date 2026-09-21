@@ -1,0 +1,11 @@
+{
+  "name": "yue-learning-grade6-math",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "翰林版國小六年級數學離線學習站（純前端，無需後端）",
+  "scripts": {
+    "test": "node --test tests/",
+    "start": "python -m http.server 8080"
+  }
+}

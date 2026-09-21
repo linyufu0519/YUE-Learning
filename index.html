@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>六年級數學學習站 | 翰林版</title>
+  <meta name="description" content="翰林版六年級數學離線學習站，提供分數乘除法練習、學習進度追蹤與家長檢視功能。" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <div>
+        <h1>🧮 六年級數學學習站</h1>
+        <div class="subtitle">翰林版．國小六年級</div>
+      </div>
+      <nav class="header-nav">
+        <a href="parent.html">👨‍👩‍👧 家長進度檢視</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- 今日學習任務 -->
+    <section class="card">
+      <div class="today-task" id="today-task">
+        <div class="task-icon">📅</div>
+        <div class="task-info">
+          <h2 id="task-title">載入中...</h2>
+          <p id="task-desc"></p>
+        </div>
+        <a class="btn" id="task-btn" href="#">開始挑戰</a>
+      </div>
+    </section>
+
+    <!-- 整體進度 -->
+    <section>
+      <h2 class="section-title">整體學習進度</h2>
+      <div class="progress-summary">
+        <div class="stat-box">
+          <div class="stat-value" id="stat-streak">0</div>
+          <div class="stat-label">連續學習天數 🔥</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="stat-accuracy">0%</div>
+          <div class="stat-label">整體正確率</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="stat-attempts">0</div>
+          <div class="stat-label">累計作答題數</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="stat-progress">0%</div>
+          <div class="stat-label">單元完成進度</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top: 12px;">
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" id="overall-progress-bar" style="width: 0%;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 單元卡片 -->
+    <section>
+      <h2 class="section-title">各單元課程</h2>
+      <div class="unit-grid" id="unit-grid"></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    本站為離線示範版本，所有學習紀錄僅保存在您的瀏覽器（localStorage），不會上傳到任何伺服器。
+  </footer>
+
+  <script type="module" src="js/home.js"></script>
+</body>
+</html>

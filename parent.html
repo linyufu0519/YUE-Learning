@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>家長進度檢視 | 六年級數學學習站</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <div>
+        <h1>👨‍👩‍👧 家長進度檢視</h1>
+        <div class="subtitle">翰林版．國小六年級</div>
+      </div>
+      <nav class="header-nav">
+        <a href="index.html">🏠 回首頁</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2 class="section-title" style="margin-top:0;">學習總覽</h2>
+      <div class="progress-summary">
+        <div class="stat-box">
+          <div class="stat-value" id="p-streak">0</div>
+          <div class="stat-label">連續學習天數 🔥</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="p-last-date">—</div>
+          <div class="stat-label">最近學習日期</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="p-total-attempts">0</div>
+          <div class="stat-label">累計作答題數</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="p-wrong-count">0</div>
+          <div class="stat-label">目前錯題本題數</div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-title">各單元學習狀況</h2>
+      <div class="card">
+        <table class="parent-table">
+          <thead>
+            <tr>
+              <th>單元</th>
+              <th>作答次數</th>
+              <th>正確率</th>
+              <th>完成度</th>
+              <th>最近作答</th>
+            </tr>
+          </thead>
+          <tbody id="unit-table-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-title">錯題本</h2>
+      <div class="card" id="wrong-book-area">
+        <div class="empty-hint">目前沒有錯題，繼續保持！</div>
+      </div>
+    </section>
+
+    <section class="danger-zone">
+      <button class="btn danger" id="reset-btn">清除所有學習紀錄</button>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    此頁面統整孩子在本裝置上的練習紀錄，協助家長掌握學習狀況。資料僅保存在本機瀏覽器中。
+  </footer>
+
+  <script type="module" src="js/parent.js"></script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>單元練習 | 六年級數學學習站</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <div>
+        <h1 id="unit-title">🧮 單元練習</h1>
+        <div class="subtitle">翰林版．國小六年級</div>
+      </div>
+      <nav class="header-nav">
+        <a href="index.html">🏠 回首頁</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card practice-header">
+      <div>
+        <strong id="progress-label">第 1 / 10 題</strong>
+        <div class="progress-bar-track" style="margin-top: 6px; width: 200px;">
+          <div class="progress-bar-fill" id="practice-progress-bar" style="width: 0%;"></div>
+        </div>
+      </div>
+      <div>
+        目前正確率：<strong id="live-accuracy">0%</strong>
+      </div>
+    </section>
+
+    <section class="card question-card" id="question-area">
+      <!-- JS 動態產生題目 -->
+    </section>
+
+    <section class="card summary-screen" id="summary-area" style="display:none;">
+      <!-- JS 動態產生結算畫面 -->
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    答錯的題目會自動加入錯題本，家長可於「家長進度檢視」頁面查看喔！
+  </footer>
+
+  <script type="module" src="js/practice.js"></script>
+</body>
+</html>
