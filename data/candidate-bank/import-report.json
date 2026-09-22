@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "sourceFileName": "6779e7b0-75a6-4149-b3a9-d33fae9c4b2b-國小六年級數學_六上每日題庫_第1-9單元與總複習.pdf",
   "sourceMetadata": {
     "source": "parent-provided-pdf",
@@ -8,77 +8,1231 @@
     "status": "quality-review-required"
   },
   "extraction": {
-    "usable": false,
-    "visibleCharacters": 4000,
-    "cjkCharacters": 0,
-    "cjkRatio": 0,
-    "suspiciousCharacters": 71,
-    "suspiciousRatio": 0.0177,
-    "reason": "blocked-garbled-or-missing-cjk"
+    "usable": true,
+    "method": "page-image-rapidocr-manual-review",
+    "pageCount": 13,
+    "renderedPageCount": 13,
+    "questionPageCount": 11,
+    "answerPageCount": 2,
+    "renderScale": 3,
+    "pageMeanConfidenceRange": [
+      0.969,
+      0.99
+    ],
+    "reason": "ocr-reviewed",
+    "notes": [
+      "RapidOCR 辨識後逐頁對照原始 PNG，繁簡字、缺字、標點與單位均由人工覆核。",
+      "PDF 答案區有多處數學錯答或錯置，A 類答案均由題幹獨立重算，不採用錯誤來源答案。"
+    ]
   },
   "counts": {
     "cataloguedCandidates": 122,
-    "approved": 0,
-    "rejected": 0,
-    "needsReview": 122,
-    "studentVisible": 0
+    "approved": 35,
+    "referenceOnly": 86,
+    "needsReview": 1,
+    "studentVisible": 35
   },
   "sections": [
     {
       "unitId": "kx-unit1",
       "label": "第1單元",
-      "candidateCount": 12
+      "page": 1,
+      "candidateCount": 12,
+      "A": 2,
+      "B": 10,
+      "C": 0
     },
     {
       "unitId": "kx-unit2",
       "label": "第2單元",
-      "candidateCount": 12
+      "page": 2,
+      "candidateCount": 12,
+      "A": 6,
+      "B": 6,
+      "C": 0
     },
     {
       "unitId": "kx-unit3",
       "label": "第3單元",
-      "candidateCount": 12
+      "page": 3,
+      "candidateCount": 12,
+      "A": 2,
+      "B": 10,
+      "C": 0
     },
     {
       "unitId": "kx-unit4",
       "label": "第4單元",
-      "candidateCount": 12
+      "page": 4,
+      "candidateCount": 12,
+      "A": 3,
+      "B": 9,
+      "C": 0
     },
     {
       "unitId": "kx-unit5",
       "label": "第5單元",
-      "candidateCount": 12
+      "page": 5,
+      "candidateCount": 12,
+      "A": 4,
+      "B": 8,
+      "C": 0
     },
     {
       "unitId": "kx-review1",
       "label": "複習（一）",
-      "candidateCount": 10
+      "page": 6,
+      "candidateCount": 10,
+      "A": 0,
+      "B": 10,
+      "C": 0
     },
     {
       "unitId": "kx-unit6",
       "label": "第6單元",
-      "candidateCount": 10
+      "page": 7,
+      "candidateCount": 10,
+      "A": 4,
+      "B": 6,
+      "C": 0
     },
     {
       "unitId": "kx-unit7",
       "label": "第7單元",
-      "candidateCount": 10
+      "page": 8,
+      "candidateCount": 10,
+      "A": 3,
+      "B": 7,
+      "C": 0
     },
     {
       "unitId": "kx-unit8",
       "label": "第8單元",
-      "candidateCount": 10
+      "page": 9,
+      "candidateCount": 10,
+      "A": 5,
+      "B": 5,
+      "C": 0
     },
     {
       "unitId": "kx-unit9",
       "label": "第9單元",
-      "candidateCount": 10
+      "page": 10,
+      "candidateCount": 10,
+      "A": 5,
+      "B": 4,
+      "C": 1
     },
     {
       "unitId": "kx-review2",
       "label": "複習（二）與總複習",
-      "candidateCount": 12
+      "page": 11,
+      "candidateCount": 12,
+      "A": 1,
+      "B": 11,
+      "C": 0
     }
   ],
-  "importDecision": "blocked-before-question-import"
+  "importDecision": "approved-items-integrated-reference-and-review-items-isolated",
+  "reviewDecisions": [
+    {
+      "id": "pdf-u1-q01",
+      "unitId": "kx-unit1",
+      "page": 1,
+      "questionNumber": 1,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u1-q02",
+      "unitId": "kx-unit1",
+      "page": 1,
+      "questionNumber": 2,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u1-q03",
+      "unitId": "kx-unit1",
+      "page": 1,
+      "questionNumber": 3,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u1-q04",
+      "unitId": "kx-unit1",
+      "page": 1,
+      "questionNumber": 4,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u1-q05",
+      "unitId": "kx-unit1",
+      "page": 1,
+      "questionNumber": 5,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u1-q06",
+      "unitId": "kx-unit1",
+      "page": 1,
+      "questionNumber": 6,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u1-q07",
+      "unitId": "kx-unit1",
+      "page": 1,
+      "questionNumber": 7,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u1-q08",
+      "unitId": "kx-unit1",
+      "page": 1,
+      "questionNumber": 8,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u1-q09",
+      "unitId": "kx-unit1",
+      "page": 1,
+      "questionNumber": 9,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u1-q10",
+      "unitId": "kx-unit1",
+      "page": 1,
+      "questionNumber": 10,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u1-q11",
+      "unitId": "kx-unit1",
+      "page": 1,
+      "questionNumber": 11,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u1-q12",
+      "unitId": "kx-unit1",
+      "page": 1,
+      "questionNumber": 12,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u2-q01",
+      "unitId": "kx-unit2",
+      "page": 2,
+      "questionNumber": 1,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u2-q02",
+      "unitId": "kx-unit2",
+      "page": 2,
+      "questionNumber": 2,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u2-q03",
+      "unitId": "kx-unit2",
+      "page": 2,
+      "questionNumber": 3,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u2-q04",
+      "unitId": "kx-unit2",
+      "page": 2,
+      "questionNumber": 4,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u2-q05",
+      "unitId": "kx-unit2",
+      "page": 2,
+      "questionNumber": 5,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u2-q06",
+      "unitId": "kx-unit2",
+      "page": 2,
+      "questionNumber": 6,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u2-q07",
+      "unitId": "kx-unit2",
+      "page": 2,
+      "questionNumber": 7,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u2-q08",
+      "unitId": "kx-unit2",
+      "page": 2,
+      "questionNumber": 8,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u2-q09",
+      "unitId": "kx-unit2",
+      "page": 2,
+      "questionNumber": 9,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u2-q10",
+      "unitId": "kx-unit2",
+      "page": 2,
+      "questionNumber": 10,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u2-q11",
+      "unitId": "kx-unit2",
+      "page": 2,
+      "questionNumber": 11,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u2-q12",
+      "unitId": "kx-unit2",
+      "page": 2,
+      "questionNumber": 12,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u3-q01",
+      "unitId": "kx-unit3",
+      "page": 3,
+      "questionNumber": 1,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u3-q02",
+      "unitId": "kx-unit3",
+      "page": 3,
+      "questionNumber": 2,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u3-q03",
+      "unitId": "kx-unit3",
+      "page": 3,
+      "questionNumber": 3,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u3-q04",
+      "unitId": "kx-unit3",
+      "page": 3,
+      "questionNumber": 4,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u3-q05",
+      "unitId": "kx-unit3",
+      "page": 3,
+      "questionNumber": 5,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u3-q06",
+      "unitId": "kx-unit3",
+      "page": 3,
+      "questionNumber": 6,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u3-q07",
+      "unitId": "kx-unit3",
+      "page": 3,
+      "questionNumber": 7,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u3-q08",
+      "unitId": "kx-unit3",
+      "page": 3,
+      "questionNumber": 8,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u3-q09",
+      "unitId": "kx-unit3",
+      "page": 3,
+      "questionNumber": 9,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u3-q10",
+      "unitId": "kx-unit3",
+      "page": 3,
+      "questionNumber": 10,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u3-q11",
+      "unitId": "kx-unit3",
+      "page": 3,
+      "questionNumber": 11,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u3-q12",
+      "unitId": "kx-unit3",
+      "page": 3,
+      "questionNumber": 12,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u4-q01",
+      "unitId": "kx-unit4",
+      "page": 4,
+      "questionNumber": 1,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u4-q02",
+      "unitId": "kx-unit4",
+      "page": 4,
+      "questionNumber": 2,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u4-q03",
+      "unitId": "kx-unit4",
+      "page": 4,
+      "questionNumber": 3,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u4-q04",
+      "unitId": "kx-unit4",
+      "page": 4,
+      "questionNumber": 4,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u4-q05",
+      "unitId": "kx-unit4",
+      "page": 4,
+      "questionNumber": 5,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u4-q06",
+      "unitId": "kx-unit4",
+      "page": 4,
+      "questionNumber": 6,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u4-q07",
+      "unitId": "kx-unit4",
+      "page": 4,
+      "questionNumber": 7,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u4-q08",
+      "unitId": "kx-unit4",
+      "page": 4,
+      "questionNumber": 8,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u4-q09",
+      "unitId": "kx-unit4",
+      "page": 4,
+      "questionNumber": 9,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u4-q10",
+      "unitId": "kx-unit4",
+      "page": 4,
+      "questionNumber": 10,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u4-q11",
+      "unitId": "kx-unit4",
+      "page": 4,
+      "questionNumber": 11,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u4-q12",
+      "unitId": "kx-unit4",
+      "page": 4,
+      "questionNumber": 12,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u5-q01",
+      "unitId": "kx-unit5",
+      "page": 5,
+      "questionNumber": 1,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u5-q02",
+      "unitId": "kx-unit5",
+      "page": 5,
+      "questionNumber": 2,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u5-q03",
+      "unitId": "kx-unit5",
+      "page": 5,
+      "questionNumber": 3,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u5-q04",
+      "unitId": "kx-unit5",
+      "page": 5,
+      "questionNumber": 4,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u5-q05",
+      "unitId": "kx-unit5",
+      "page": 5,
+      "questionNumber": 5,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u5-q06",
+      "unitId": "kx-unit5",
+      "page": 5,
+      "questionNumber": 6,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u5-q07",
+      "unitId": "kx-unit5",
+      "page": 5,
+      "questionNumber": 7,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u5-q08",
+      "unitId": "kx-unit5",
+      "page": 5,
+      "questionNumber": 8,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u5-q09",
+      "unitId": "kx-unit5",
+      "page": 5,
+      "questionNumber": 9,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u5-q10",
+      "unitId": "kx-unit5",
+      "page": 5,
+      "questionNumber": 10,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u5-q11",
+      "unitId": "kx-unit5",
+      "page": 5,
+      "questionNumber": 11,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u5-q12",
+      "unitId": "kx-unit5",
+      "page": 5,
+      "questionNumber": 12,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-r1-q01",
+      "unitId": "kx-review1",
+      "page": 6,
+      "questionNumber": 1,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-r1-q02",
+      "unitId": "kx-review1",
+      "page": 6,
+      "questionNumber": 2,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-r1-q03",
+      "unitId": "kx-review1",
+      "page": 6,
+      "questionNumber": 3,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-r1-q04",
+      "unitId": "kx-review1",
+      "page": 6,
+      "questionNumber": 4,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-r1-q05",
+      "unitId": "kx-review1",
+      "page": 6,
+      "questionNumber": 5,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-r1-q06",
+      "unitId": "kx-review1",
+      "page": 6,
+      "questionNumber": 6,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-r1-q07",
+      "unitId": "kx-review1",
+      "page": 6,
+      "questionNumber": 7,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-r1-q08",
+      "unitId": "kx-review1",
+      "page": 6,
+      "questionNumber": 8,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-r1-q09",
+      "unitId": "kx-review1",
+      "page": 6,
+      "questionNumber": 9,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-r1-q10",
+      "unitId": "kx-review1",
+      "page": 6,
+      "questionNumber": 10,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u6-q01",
+      "unitId": "kx-unit6",
+      "page": 7,
+      "questionNumber": 1,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u6-q02",
+      "unitId": "kx-unit6",
+      "page": 7,
+      "questionNumber": 2,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u6-q03",
+      "unitId": "kx-unit6",
+      "page": 7,
+      "questionNumber": 3,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u6-q04",
+      "unitId": "kx-unit6",
+      "page": 7,
+      "questionNumber": 4,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u6-q05",
+      "unitId": "kx-unit6",
+      "page": 7,
+      "questionNumber": 5,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u6-q06",
+      "unitId": "kx-unit6",
+      "page": 7,
+      "questionNumber": 6,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u6-q07",
+      "unitId": "kx-unit6",
+      "page": 7,
+      "questionNumber": 7,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u6-q08",
+      "unitId": "kx-unit6",
+      "page": 7,
+      "questionNumber": 8,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u6-q09",
+      "unitId": "kx-unit6",
+      "page": 7,
+      "questionNumber": 9,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u6-q10",
+      "unitId": "kx-unit6",
+      "page": 7,
+      "questionNumber": 10,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u7-q01",
+      "unitId": "kx-unit7",
+      "page": 8,
+      "questionNumber": 1,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u7-q02",
+      "unitId": "kx-unit7",
+      "page": 8,
+      "questionNumber": 2,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u7-q03",
+      "unitId": "kx-unit7",
+      "page": 8,
+      "questionNumber": 3,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u7-q04",
+      "unitId": "kx-unit7",
+      "page": 8,
+      "questionNumber": 4,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u7-q05",
+      "unitId": "kx-unit7",
+      "page": 8,
+      "questionNumber": 5,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u7-q06",
+      "unitId": "kx-unit7",
+      "page": 8,
+      "questionNumber": 6,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u7-q07",
+      "unitId": "kx-unit7",
+      "page": 8,
+      "questionNumber": 7,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u7-q08",
+      "unitId": "kx-unit7",
+      "page": 8,
+      "questionNumber": 8,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u7-q09",
+      "unitId": "kx-unit7",
+      "page": 8,
+      "questionNumber": 9,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u7-q10",
+      "unitId": "kx-unit7",
+      "page": 8,
+      "questionNumber": 10,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u8-q01",
+      "unitId": "kx-unit8",
+      "page": 9,
+      "questionNumber": 1,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u8-q02",
+      "unitId": "kx-unit8",
+      "page": 9,
+      "questionNumber": 2,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u8-q03",
+      "unitId": "kx-unit8",
+      "page": 9,
+      "questionNumber": 3,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u8-q04",
+      "unitId": "kx-unit8",
+      "page": 9,
+      "questionNumber": 4,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u8-q05",
+      "unitId": "kx-unit8",
+      "page": 9,
+      "questionNumber": 5,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u8-q06",
+      "unitId": "kx-unit8",
+      "page": 9,
+      "questionNumber": 6,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u8-q07",
+      "unitId": "kx-unit8",
+      "page": 9,
+      "questionNumber": 7,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u8-q08",
+      "unitId": "kx-unit8",
+      "page": 9,
+      "questionNumber": 8,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u8-q09",
+      "unitId": "kx-unit8",
+      "page": 9,
+      "questionNumber": 9,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u8-q10",
+      "unitId": "kx-unit8",
+      "page": 9,
+      "questionNumber": 10,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u9-q01",
+      "unitId": "kx-unit9",
+      "page": 10,
+      "questionNumber": 1,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u9-q02",
+      "unitId": "kx-unit9",
+      "page": 10,
+      "questionNumber": 2,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u9-q03",
+      "unitId": "kx-unit9",
+      "page": 10,
+      "questionNumber": 3,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u9-q04",
+      "unitId": "kx-unit9",
+      "page": 10,
+      "questionNumber": 4,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u9-q05",
+      "unitId": "kx-unit9",
+      "page": 10,
+      "questionNumber": 5,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u9-q06",
+      "unitId": "kx-unit9",
+      "page": 10,
+      "questionNumber": 6,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u9-q07",
+      "unitId": "kx-unit9",
+      "page": 10,
+      "questionNumber": 7,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u9-q08",
+      "unitId": "kx-unit9",
+      "page": 10,
+      "questionNumber": 8,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-u9-q09",
+      "unitId": "kx-unit9",
+      "page": 10,
+      "questionNumber": 9,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-u9-q10",
+      "unitId": "kx-unit9",
+      "page": 10,
+      "questionNumber": 10,
+      "classification": "C",
+      "decision": "parent-confirmation-required",
+      "reason": "題目只提供照片長寬比 4：3 與放大 1.5 倍，沒有提供原始長或寬，無法唯一求出放大後的實際長寬。",
+      "ocrFragment": "一張照片長寬比為4：3，放大1.5倍後，長寬各是多少？"
+    },
+    {
+      "id": "pdf-r2-q01",
+      "unitId": "kx-review2",
+      "page": 11,
+      "questionNumber": 1,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-r2-q02",
+      "unitId": "kx-review2",
+      "page": 11,
+      "questionNumber": 2,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-r2-q03",
+      "unitId": "kx-review2",
+      "page": 11,
+      "questionNumber": 3,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-r2-q04",
+      "unitId": "kx-review2",
+      "page": 11,
+      "questionNumber": 4,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-r2-q05",
+      "unitId": "kx-review2",
+      "page": 11,
+      "questionNumber": 5,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-r2-q06",
+      "unitId": "kx-review2",
+      "page": 11,
+      "questionNumber": 6,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-r2-q07",
+      "unitId": "kx-review2",
+      "page": 11,
+      "questionNumber": 7,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-r2-q08",
+      "unitId": "kx-review2",
+      "page": 11,
+      "questionNumber": 8,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-r2-q09",
+      "unitId": "kx-review2",
+      "page": 11,
+      "questionNumber": 9,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-r2-q10",
+      "unitId": "kx-review2",
+      "page": 11,
+      "questionNumber": 10,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    },
+    {
+      "id": "pdf-r2-q11",
+      "unitId": "kx-review2",
+      "page": 11,
+      "questionNumber": 11,
+      "classification": "A",
+      "decision": "approved-and-integrated",
+      "reason": "OCR 與原頁核對完成；答案獨立重算，語意與單位完整，且可補充既有題庫結構。"
+    },
+    {
+      "id": "pdf-r2-q12",
+      "unitId": "kx-review2",
+      "page": 11,
+      "questionNumber": 12,
+      "classification": "B",
+      "decision": "reference-only",
+      "reason": "文字可可靠辨識，但屬例行直接計算、重複既有結構，或不符合目前關卡核心；只保留作題型參考。"
+    }
+  ]
 }

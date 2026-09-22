@@ -7,6 +7,8 @@ import {
   approvedCandidateQuestions,
   buildCandidateImportReport,
 } from "../js/candidate-bank.js";
+import { APPROVED_CANDIDATE_QUESTIONS } from "../js/approved-candidate-questions.js";
+import { OCR_REVIEW_DECISIONS, buildOcrReviewSummary } from "../js/candidate-review-decisions.js";
 
 function candidate(overrides = {}) {
   return {
@@ -98,4 +100,34 @@ test("未核准、分類錯誤及結構重複題不會進正式候選池", () =>
   assert.ok(result.review.flatMap((item) => item.reasons).includes("duplicate-structure"));
   assert.ok(result.review.flatMap((item) => item.reasons).includes("not-approved"));
   assert.ok(result.review.flatMap((item) => item.reasons).includes("invalid-stage-classification"));
+});
+
+test("13頁OCR後122題皆有A/B/C決策，且分類統計完整", () => {
+  const summary = buildOcrReviewSummary();
+  assert.equal(OCR_REVIEW_DECISIONS.length, 122);
+  assert.deepEqual(summary.counts, { A: 35, B: 86, C: 1 });
+  assert.equal(summary.sections.length, 11);
+  assert.equal(summary.sections.reduce((sum, section) => sum + section.candidateCount, 0), 122);
+  assert.ok(OCR_REVIEW_DECISIONS.every((item) =>
+    item.page >= 1 && item.page <= 11 && ["A", "B", "C"].includes(item.classification)
+  ));
+});
+
+test("A類35題全部通過來源、答案、唯一正解與品質審核", () => {
+  const result = approvedCandidateQuestions(APPROVED_CANDIDATE_QUESTIONS);
+  assert.equal(APPROVED_CANDIDATE_QUESTIONS.length, 35);
+  assert.equal(result.approved.length, 35);
+  assert.deepEqual(result.review, []);
+});
+
+test("B/C類不進正式題庫，C類必須保留頁碼、OCR片段與疑點", () => {
+  const approvedIds = new Set(
+    APPROVED_CANDIDATE_QUESTIONS.map((question) => question.sourceMetadata.originalCandidateId)
+  );
+  const isolated = OCR_REVIEW_DECISIONS.filter((item) => item.classification !== "A");
+  assert.ok(isolated.every((item) => !approvedIds.has(item.id)));
+  const cItems = isolated.filter((item) => item.classification === "C");
+  assert.equal(cItems.length, 1);
+  assert.ok(cItems.every((item) => item.page && item.ocrFragment && item.reason));
+  assert.match(cItems[0].reason, /無法唯一求出/);
 });

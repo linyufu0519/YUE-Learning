@@ -1,5 +1,6 @@
 // 康軒六上關卡題庫純函式引擎；題目只由 stageId、difficulty、index 決定。
 import { COURSE_STAGES, getCourseStage } from "./course-stages.js";
+import { getApprovedCandidatesForStage } from "./approved-candidate-questions.js";
 
 export const STAGE_DIFFICULTIES = Object.freeze(["easy", "medium", "hard"]);
 
@@ -1065,6 +1066,17 @@ export function generateStageQuestionPool(stageId, difficulty = "easy", count = 
   return questions;
 }
 
+export function getOfficialStageQuestionPool(stageId, difficulty = "easy", count = 50) {
+  const generated = generateStageQuestionPool(stageId, difficulty, count);
+  const seen = new Set(generated.map((question) => `${question.prompt}\0${question.answer}`));
+  return [
+    ...generated,
+    ...getApprovedCandidatesForStage(stageId, difficulty).filter((candidate) =>
+      !seen.has(`${candidate.prompt}\0${candidate.answer}`)
+    ),
+  ];
+}
+
 export function selectStageQuestions({ stageId, count = 10, recentQuestionIds = [], rng = Math.random }) {
   if (!Number.isInteger(count) || count < 1) throw new RangeError("count 必須是正整數。");
   if (typeof rng !== "function") throw new TypeError("rng 必須是函式。");
@@ -1078,7 +1090,32 @@ export function selectStageQuestions({ stageId, count = 10, recentQuestionIds = 
     const pool = generateStageQuestionPool(stageId, level, Math.max(50, levelCount + recent.size));
     selected.push(...selectBalancedStructures(pool, levelCount, recent, rng));
   }
-  return shuffle(selected, rng);
+  return shuffle(injectReviewedCandidate(selected, stageId, recent, rng), rng);
+}
+
+function injectReviewedCandidate(selected, stageId, recent, rng) {
+  const candidates = getApprovedCandidatesForStage(stageId)
+    .filter((candidate) => !recent.has(candidate.id));
+  if (!candidates.length) return selected;
+  const candidate = candidates[Math.floor(rng() * candidates.length)];
+  const candidateFingerprint = getQuestionStructureFingerprint(candidate);
+  const candidateMode = candidateFingerprint.match(/mode:([^|]+)/)?.[1];
+  const operationCounts = new Map();
+  for (const question of selected) {
+    const operation = getQuestionStructureFingerprint(question).split("|")[0];
+    operationCounts.set(operation, (operationCounts.get(operation) || 0) + 1);
+  }
+  const replacementIndex = selected.findIndex((question) => {
+    if (question.difficulty !== candidate.difficulty) return false;
+    const fingerprint = getQuestionStructureFingerprint(question);
+    const mode = fingerprint.match(/mode:([^|]+)/)?.[1];
+    const operation = fingerprint.split("|")[0];
+    return mode === candidateMode && operationCounts.get(operation) > 1;
+  });
+  if (replacementIndex < 0) return selected;
+  const result = [...selected];
+  result[replacementIndex] = candidate;
+  return result;
 }
 
 function allocateDifficultyCounts(count, weights) {

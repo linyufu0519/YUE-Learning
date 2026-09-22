@@ -121,17 +121,22 @@ node --test tests/
 
 練習頁不再讓孩子選擇「基礎／進階／挑戰」。每次固定產生適合六年級的 10 題混合題組，由引擎配置 3 題基礎結構、4 題反推與換算、3 題生活應用，並涵蓋直接解題、選擇及判斷三種認知操作；內部 `difficulty` 欄位只為舊紀錄與題庫相容，不會顯示或由網址控制。
 
-目前共有 181 項 Node 測試，另有 HTTP 與 Edge headless browser 驗證。涵蓋分數判定、localStorage 相容、教材版本切換、79 關配置、各大項 790 題最低完整作答量、全關卡 easy／medium／hard 各 50 題（共 11850 組抽樣，超過至少 3950 種變化需求）、topic operation contract、79 關 hard 各 50 題的單一主角／禁用套語／主題語意／條件完整性稽核、三種內部題型層次的答案洩漏、選擇題文字與題意語意唯一正解及無關算術拼接防線、79 關固定十題混合題組的結構指紋與認知操作配額、PDF候選題亂碼阻擋／來源metadata／答案驗算／唯一正解／品質門檻／結構去重、分數／小數／比／圓／速率／比例尺答案不變量、同單元跨關卡題型差異、同次 10 題去重、9900 XP、Lv.100、順序解鎖、重複不發獎、舊 XP 保留、semesterProgress migration／Firebase 聯集合併、首頁四種關卡狀態，以及家長通過 8888 後的 79 關與單元獎勵摘要。雲端同步測試全程使用假資料驗證純函式邏輯，**不會連線到真實 Firebase**。
+目前共有 185 項 Node 測試，另有 HTTP 與 Edge headless browser 驗證。涵蓋分數判定、localStorage 相容、教材版本切換、79 關配置、各大項 790 題最低完整作答量、全關卡 easy／medium／hard 各 50 題（共 11850 組抽樣，超過至少 3950 種變化需求）、topic operation contract、79 關 hard 各 50 題的單一主角／禁用套語／主題語意／條件完整性稽核、三種內部題型層次的答案洩漏、選擇題文字與題意語意唯一正解及無關算術拼接防線、79 關固定十題混合題組的結構指紋與認知操作配額、PDF候選題亂碼阻擋／來源metadata／答案驗算／唯一正解／品質門檻／結構去重、分數／小數／比／圓／速率／比例尺答案不變量、同單元跨關卡題型差異、同次 10 題去重、9900 XP、Lv.100、順序解鎖、重複不發獎、舊 XP 保留、semesterProgress migration／Firebase 聯集合併、首頁四種關卡狀態，以及家長通過 8888 後的 79 關與單元獎勵摘要。雲端同步測試全程使用假資料驗證純函式邏輯，**不會連線到真實 Firebase**。
 
 ### PDF 候選題庫
 
-家長提供的 PDF 只作為候選來源，不會直接顯示給學生。可重複執行：
+家長提供的 PDF 先作為候選來源，不會未經審核就顯示給學生。若 PDF 字型讓 `pdftotext` 無法讀取中文，可先安裝 OCR 依賴，再把全部頁面轉成 3× PNG 辨識：
 
 ```powershell
+python -m pip install pymupdf rapidocr_onnxruntime
+python scripts\ocr-candidate-bank.py "C:\path\to\候選題庫.pdf" "C:\temp\candidate-ocr"
 node scripts\import-candidate-bank.mjs "C:\path\to\候選題庫.pdf"
+node scripts\build-candidate-review-report.mjs
 ```
 
-流程會產生 `data/candidate-bank/import-report.json` 與 `REVIEW_REPORT.md`。只有完成來源標記、關卡分類、答案驗算、選項唯一性、語意／教學品質和結構去重，且 `reviewStatus=approved` 的題目才可進入候選池；亂碼或未審核內容一律阻擋。
+本次 13 頁已全部完成 RapidOCR 與原圖人工覆核，122 題分為 **A 35 題／B 86 題／C 1 題**。A 類已獨立重算答案並加入對應關卡正式題池；B 類為例行直算或重複結構，只保留題型參考；C 類因條件不足保留頁碼與 OCR 片段，待家長確認。PDF 的答案區有多處錯答或錯置，正式題庫不直接信任來源答案。完整逐題決策在 `data/candidate-bank/import-report.json`，可讀摘要在 `data/candidate-bank/REVIEW_REPORT.md`。
+
+只有完成來源標記、關卡分類、答案重算、選項唯一性、語意／教學品質和結構去重，且 `reviewStatus=approved` 的題目才可進入正式題池；亂碼、B 類與 C 類內容一律隔離。
 
 另新增錯題複習回歸測試，涵蓋單題／整份重答、答對移除、答錯更新、康軒／翰林版本隔離與空錯題本；並驗證每日任務完成後內部 `rewards.stars` 仍正確累加，但首頁、練習頁及家長頁的可見內容不含星星文字或圖示。
 

@@ -7,6 +7,8 @@
   "scripts": {
     "test": "node --test tests/",
     "start": "python -m http.server 8080",
-    "import:candidates": "node scripts/import-candidate-bank.mjs"
+    "import:candidates": "node scripts/import-candidate-bank.mjs",
+    "ocr:candidates": "python scripts/ocr-candidate-bank.py",
+    "report:candidates": "node scripts/build-candidate-review-report.mjs"
   }
 }

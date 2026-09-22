@@ -7,9 +7,11 @@ import {
   STAGE_STRATEGY_METADATA,
   generateStageQuestion,
   generateStageQuestionPool,
+  getOfficialStageQuestionPool,
   getQuestionStructureFingerprint,
   selectStageQuestions,
 } from "../js/stage-question-engine.js";
+import { APPROVED_CANDIDATE_QUESTIONS } from "../js/approved-candidate-questions.js";
 
 function fixedRng(values) {
   let position = 0;
@@ -425,4 +427,27 @@ test("錯誤參數維持既有防護", () => {
   assert.throws(() => generateStageQuestionPool(stageId, "easy", 0), RangeError);
   assert.throws(() => selectStageQuestions({ stageId, count: 0 }), RangeError);
   assert.throws(() => selectStageQuestions({ stageId, rng: 1 }), TypeError);
+});
+
+test("OCR審核A類題加入正式關卡題池，但不改變原生成池50題契約", () => {
+  const byStage = new Map();
+  for (const question of APPROVED_CANDIDATE_QUESTIONS) {
+    const list = byStage.get(question.stageId) || [];
+    list.push(question);
+    byStage.set(question.stageId, list);
+  }
+  for (const [stageId, candidates] of byStage.entries()) {
+    for (const difficulty of ["easy", "medium", "hard"]) {
+      const expected = candidates.filter((question) => question.difficulty === difficulty);
+      const generated = generateStageQuestionPool(stageId, difficulty, 50);
+      const official = getOfficialStageQuestionPool(stageId, difficulty, 50);
+      assert.equal(generated.length, 50);
+      assert.equal(official.length, 50 + expected.length);
+      assert.ok(expected.every((question) => official.some((item) => item.id === question.id)));
+    }
+    const candidateCanBeSelected = Array.from({ length: 20 }, (_, index) => (index + 0.5) / 20)
+      .some((value) => selectStageQuestions({ stageId, rng: () => value })
+        .some((question) => question.id.startsWith("candidate-")));
+    assert.equal(candidateCanBeSelected, true, `${stageId} 的A類題未能進入實際10題抽樣`);
+  }
 });
