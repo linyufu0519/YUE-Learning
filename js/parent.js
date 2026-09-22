@@ -1,24 +1,33 @@
 // js/parent.js
-import { UNITS } from "./data.js";
-import { getAvailableQuestionCount } from "./question-engine.js";
+import { getUnitsForVersion, isPracticeAvailable, getAvailableQuestionCount, getUnitByVersion, getVersionLabel } from "./curriculum.js";
 import {
   getRewardSummary,
   getUnitSummary,
   getStreak,
   getWrongBook,
+  getCurrentVersion,
   resetState,
 } from "./storage.js";
 import { verifyParentPassword } from "./parent-auth.js";
 import { describeSyncStatus } from "./sync-logic.js";
 import { initSync, onSyncStatusChange } from "./sync-manager.js";
+import { renderVersionSwitcher } from "./version-ui.js";
 
 let isParentAuthorized = false;
 
+// 版本標示為單純顯示用途（非學習內容），不需要密碼即可顯示，讓家長進入前就知道目前是哪個版本。
+document.getElementById("parent-version-subtitle").textContent = `${getVersionLabel(getCurrentVersion())}．國小六年級`;
+
 function render() {
+  const version = getCurrentVersion();
+  const UNITS = getUnitsForVersion(version);
+  document.getElementById("p-version-label").textContent = getVersionLabel(version);
+  renderVersionSwitcher("version-switcher-buttons");
+
   const streak = getStreak();
-  const wrongBook = getWrongBook();
+  const wrongBook = getWrongBook(version);
   const rewards = getRewardSummary();
-  const activeUnits = UNITS.filter((u) => u.available);
+  const activeUnits = UNITS.filter((u) => isPracticeAvailable(version, u.id));
 
   let totalAttempts = 0;
   let latestDate = null;
@@ -27,7 +36,7 @@ function render() {
   tbody.innerHTML = "";
 
   for (const unit of activeUnits) {
-    const summary = getUnitSummary(unit.id, getAvailableQuestionCount(unit.id));
+    const summary = getUnitSummary(unit.id, getAvailableQuestionCount(version, unit.id), version);
     totalAttempts += summary.attempts;
     if (summary.lastDate && (!latestDate || summary.lastDate > latestDate)) {
       latestDate = summary.lastDate;
@@ -77,7 +86,7 @@ function render() {
       .slice()
       .reverse()
       .map((w) => {
-        const unit = UNITS.find((u) => u.id === w.unitId);
+        const unit = getUnitByVersion(version, w.unitId);
         return `
           <div class="wrong-item">
             <div class="wrong-prompt">${unit ? unit.icon : ""} ${escapeHtml(w.prompt)}</div>

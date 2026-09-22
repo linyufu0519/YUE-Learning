@@ -11,7 +11,7 @@
     <div class="header-inner">
       <div>
         <h1>👨‍👩‍👧 家長進度檢視</h1>
-        <div class="subtitle">翰林版．國小六年級</div>
+        <div class="subtitle" id="parent-version-subtitle">康軒版．國小六年級</div>
       </div>
       <nav class="header-nav">
         <a href="index.html">🏠 回首頁</a>
@@ -47,6 +47,13 @@
     </section>
 
     <div id="parent-dashboard" hidden>
+    <section class="card version-switcher">
+      <div class="version-switcher-row">
+        <span class="version-switcher-label">📚 目前檢視版本：<strong id="p-version-label">康軒版</strong></span>
+        <div class="version-switcher-buttons" id="version-switcher-buttons"></div>
+      </div>
+      <p class="unit-meta">切換版本可查看該版本的單元學習狀況與錯題本，兩個版本的紀錄互不影響。</p>
+    </section>
     <section class="card">
       <h2 class="section-title" style="margin-top:0;">學習總覽</h2>
       <div class="progress-summary">

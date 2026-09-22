@@ -1,5 +1,5 @@
 // js/practice.js
-import { getUnitById } from "./data.js";
+import { resolveUnit, getPracticeBankKey, getAvailableQuestionCount, getVersionLabel } from "./curriculum.js";
 import { gradeAnswer } from "./logic.js";
 import {
   getRecentQuestionIds,
@@ -9,13 +9,16 @@ import {
 import {
   DIFFICULTY_LABELS,
   PRACTICE_QUESTION_COUNT,
-  getAvailableQuestionCount,
   selectPracticeQuestions,
 } from "./question-engine.js";
 
 const params = new URLSearchParams(window.location.search);
 const unitId = params.get("unit");
-const unit = getUnitById(unitId);
+const { version, unit } = resolveUnit(unitId);
+// 康軒版第2單元（分數除法）沿用翰林版「fraction-divide」題庫，抽題時要用題庫 key，
+// 但學習紀錄（recordAnswer/getUnitSummary/getRecentQuestionIds）仍以畫面上的 unitId 為準，
+// 讓兩個版本的進度分開累計，不互相污染。
+const bankKey = unit ? getPracticeBankKey(version, unit.id) : null;
 let selectedDifficulty = params.get("difficulty") || "smart";
 let questions = [];
 
@@ -29,7 +32,7 @@ let currentIndex = 0;
 let sessionCorrect = 0;
 let answeredCurrent = false;
 
-if (!unit || !unit.available) {
+if (!unit || !bankKey) {
   questionArea.innerHTML = `
     <p>⚠️ 這個單元目前尚未開放練習，請先閱讀教學內容。</p>
     <a class="btn" href="index.html">回首頁</a>
@@ -37,6 +40,8 @@ if (!unit || !unit.available) {
 } else {
   document.getElementById("unit-title").textContent = `${unit.icon} ${unit.title}`;
   document.title = `${unit.title} | 林小玥六年級數學學習站`;
+  const subtitleEl = document.querySelector(".subtitle");
+  if (subtitleEl) subtitleEl.textContent = `${getVersionLabel(version)}．國小六年級`;
   document.getElementById("ddl-difficulty").value = selectedDifficulty;
   document.getElementById("ddl-difficulty").addEventListener("change", (event) => {
     selectedDifficulty = event.target.value;
@@ -47,13 +52,13 @@ if (!unit || !unit.available) {
 }
 
 function startPractice() {
-  const total = getAvailableQuestionCount(unitId);
-  const summary = getUnitSummary(unitId, total);
+  const total = getAvailableQuestionCount(version, unit.id);
+  const summary = getUnitSummary(unit.id, total, version);
   questions = selectPracticeQuestions({
-    unitId,
+    unitId: bankKey,
     difficulty: selectedDifficulty,
     count: PRACTICE_QUESTION_COUNT,
-    recentQuestionIds: getRecentQuestionIds(unitId),
+    recentQuestionIds: getRecentQuestionIds(unit.id),
     summary,
   });
   currentIndex = 0;
@@ -141,13 +146,14 @@ function handleAnswer(userAnswer, element) {
   if (isCorrect) sessionCorrect += 1;
 
   const state = recordAnswer({
-    unitId,
+    unitId: unit.id,
     questionId: q.id,
     prompt: q.prompt,
     isCorrect,
     yourAnswer: String(userAnswer),
     correctAnswer: q.answer,
     explanation: q.explanation,
+    version,
   });
 
   if (q.type === "choice") {
@@ -196,7 +202,7 @@ function showSummary() {
   progressBar.style.width = "100%";
 
   const accuracy = Math.round((sessionCorrect / questions.length) * 100);
-  const summary = getUnitSummary(unitId, getAvailableQuestionCount(unitId));
+  const summary = getUnitSummary(unit.id, getAvailableQuestionCount(version, unit.id), version);
   const emoji = accuracy >= 80 ? "🏆" : accuracy >= 50 ? "👍" : "💪";
 
   summaryArea.innerHTML = `
@@ -218,7 +224,7 @@ function showSummary() {
     </div>
     <div class="practice-footer" style="justify-content:center;">
       <button class="btn secondary" id="retry-btn">再練習一次</button>
-      <a class="btn secondary" href="lesson.html?unit=${unitId}">回教學複習</a>
+      <a class="btn secondary" href="lesson.html?unit=${unit.id}">回教學複習</a>
       <a class="btn outline" href="index.html">回首頁</a>
       <a class="btn" href="parent.html">查看家長進度檢視</a>
     </div>

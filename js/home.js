@@ -1,8 +1,8 @@
 // js/home.js
-import { UNITS } from "./data.js";
-import { getAvailableQuestionCount } from "./question-engine.js";
-import { getRewardSummary, getUnitSummary, getStreak } from "./storage.js";
+import { getUnitsForVersion, getAvailableQuestionCount, getVersionLabel, isPracticeAvailable } from "./curriculum.js";
+import { getRewardSummary, getUnitSummary, getStreak, getCurrentVersion } from "./storage.js";
 import { describeSyncStatus } from "./sync-logic.js";
+import { renderVersionSwitcher } from "./version-ui.js";
 import {
   initSync,
   onSyncStatusChange,
@@ -11,14 +11,33 @@ import {
   logoutAccount,
 } from "./sync-manager.js";
 
+const version = getCurrentVersion();
+const UNITS = getUnitsForVersion(version);
+
+function renderVersionHeader() {
+  const label = `${getVersionLabel(version)}．國小六年級`;
+  document.getElementById("version-subtitle").textContent = label;
+  document.title = `林小玥六年級數學學習站 | ${getVersionLabel(version)}`;
+  renderVersionSwitcher("version-switcher-buttons");
+}
+
 function renderTodayTask() {
-  const activeUnits = UNITS.filter((u) => u.available);
+  const activeUnits = UNITS.filter((u) => isPracticeAvailable(version, u.id));
+  if (activeUnits.length === 0) {
+    document.getElementById("task-title").textContent = "先從教學模式開始吧！";
+    document.getElementById("task-desc").textContent =
+      "目前版本的練習題庫準備中，先閱讀教學內容，累積閱讀任務的 XP 吧！";
+    const btn = document.getElementById("task-btn");
+    btn.textContent = "前往教學模式";
+    btn.href = `lesson.html?unit=${UNITS[0].id}`;
+    return;
+  }
   // 挑選正確率最低（最需要複習）的可用單元作為今日任務
   let target = activeUnits[0];
   let lowest = 101;
   for (const u of activeUnits) {
-    const total = getAvailableQuestionCount(u.id);
-    const summary = getUnitSummary(u.id, total);
+    const total = getAvailableQuestionCount(version, u.id);
+    const summary = getUnitSummary(u.id, total, version);
     const score = summary.attempts === 0 ? -1 : summary.accuracy;
     if (score < lowest) {
       lowest = score;
@@ -26,8 +45,8 @@ function renderTodayTask() {
     }
   }
 
-  const total = getAvailableQuestionCount(target.id);
-  const summary = getUnitSummary(target.id, total);
+  const total = getAvailableQuestionCount(version, target.id);
+  const summary = getUnitSummary(target.id, total, version);
 
   document.getElementById("task-title").textContent = `今天挑戰：${target.title}`;
   document.getElementById("task-desc").textContent =
@@ -35,19 +54,20 @@ function renderTodayTask() {
       ? `題庫已擴充到 ${total} 題以上，先學觀念再挑戰！`
       : `目前正確率 ${summary.accuracy}%，再練習一次讓自己更進步！`;
   const btn = document.getElementById("task-btn");
+  btn.textContent = "開始挑戰";
   btn.href = `practice.html?unit=${target.id}`;
 }
 
 function renderOverallProgress() {
-  const activeUnits = UNITS.filter((u) => u.available);
+  const activeUnits = UNITS.filter((u) => isPracticeAvailable(version, u.id));
   let totalAttempts = 0;
   let totalCorrect = 0;
   let totalCompleted = 0;
   let totalQuestions = 0;
 
   for (const u of activeUnits) {
-    const total = getAvailableQuestionCount(u.id);
-    const summary = getUnitSummary(u.id, total);
+    const total = getAvailableQuestionCount(version, u.id);
+    const summary = getUnitSummary(u.id, total, version);
     totalAttempts += summary.attempts;
     totalCorrect += summary.correct;
     totalCompleted += Math.round((summary.progress / 100) * total);
@@ -70,15 +90,16 @@ function renderUnitGrid() {
   grid.innerHTML = "";
 
   for (const unit of UNITS) {
-    const total = getAvailableQuestionCount(unit.id);
-    const summary = unit.available ? getUnitSummary(unit.id, total) : null;
+    const practiceAvailable = isPracticeAvailable(version, unit.id);
+    const total = getAvailableQuestionCount(version, unit.id);
+    const summary = practiceAvailable ? getUnitSummary(unit.id, total, version) : null;
 
     const card = document.createElement("div");
-    card.className = `unit-card ${unit.available ? "available" : "locked"}`;
+    card.className = `unit-card ${practiceAvailable ? "available" : "locked"}`;
 
     let badge = "";
-    if (!unit.available) {
-      badge = `<span class="badge locked">敬請期待</span>`;
+    if (!practiceAvailable) {
+      badge = `<span class="badge locked">${unit.available ? "題庫建置中" : "敬請期待"}</span>`;
     } else if (summary.attempts === 0) {
       badge = `<span class="badge new">可挑戰</span>`;
     } else if (summary.accuracy >= 80) {
@@ -89,10 +110,10 @@ function renderUnitGrid() {
       ${badge}
       <div class="unit-icon">${unit.icon}</div>
       <h3>${unit.title}</h3>
-      <div class="unit-meta">${unit.semester}${unit.available ? ` · 動態題庫 ${total} 題+` : " · 基礎教學已開放"}</div>
+      <div class="unit-meta">${unit.semester}${practiceAvailable ? ` · 動態題庫 ${total} 題+` : " · 基礎教學已開放"}</div>
       <p class="unit-desc">${unit.description}</p>
       ${
-        unit.available
+        practiceAvailable
           ? `<div class="progress-bar-track"><div class="progress-bar-fill" style="width:${summary.progress}%;"></div></div>
              <div class="unit-meta">正確率 ${summary.accuracy}% ・ 完成度 ${summary.progress}%</div>
              <div class="unit-actions">
@@ -138,6 +159,7 @@ function renderRewards() {
     .join("");
 }
 
+renderVersionHeader();
 renderTodayTask();
 renderOverallProgress();
 renderRewards();

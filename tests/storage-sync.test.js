@@ -36,7 +36,7 @@ test("onStateChange 會在 recordAnswer 之後收到最新狀態", () => {
   });
 
   assert.equal(received.length, 1);
-  assert.equal(received[0].units["fraction-multiply"].attempts, 1);
+  assert.equal(received[0].progress.kangxuan.units["fraction-multiply"].attempts, 1);
   unsubscribe();
 });
 
@@ -57,9 +57,9 @@ test("resetState 也會觸發 onStateChange（清空要能同步到雲端）", (
   const cleared = resetState();
 
   assert.equal(received.length, 1);
-  assert.deepEqual(received[0].units, {});
-  assert.deepEqual(received[0].wrongBook, []);
-  assert.deepEqual(cleared.units, {});
+  assert.deepEqual(received[0].progress.kangxuan.units, {});
+  assert.deepEqual(received[0].progress.kangxuan.wrongBook, []);
+  assert.deepEqual(cleared.progress.kangxuan.units, {});
   unsubscribe();
 });
 
@@ -84,17 +84,43 @@ test("unsubscribe 之後不再收到通知", () => {
 
 test("replaceState 會補齊缺少欄位並正規化 rewards（模擬雲端合併寫回）", () => {
   const merged = replaceState({
+    version: "hanlin",
     streak: { count: 9, lastDate: "2026-05-01" },
-    units: { "fraction-multiply": { attempts: 20, correct: 18, bestAccuracy: 90, lastDate: "2026-05-01", completedQuestionIds: ["a", "b"] } },
-    // 故意省略 wrongBook 與 rewards，測試補齊
+    progress: {
+      hanlin: {
+        units: { "fraction-multiply": { attempts: 20, correct: 18, bestAccuracy: 90, lastDate: "2026-05-01", completedQuestionIds: ["a", "b"] } },
+        // 故意省略 wrongBook，測試補齊
+      },
+    },
+    // 故意省略 rewards，測試補齊
   });
 
   assert.equal(merged.streak.count, 9);
-  assert.deepEqual(merged.wrongBook, []);
+  assert.deepEqual(merged.progress.hanlin.wrongBook, []);
+  assert.deepEqual(merged.progress.kangxuan, { units: {}, wrongBook: [] });
   assert.equal(typeof merged.rewards.xp, "number");
   assert.ok(merged.rewards.daily);
 
   const persisted = loadState();
   assert.equal(persisted.streak.count, 9);
-  assert.equal(persisted.units["fraction-multiply"].attempts, 20);
+  assert.equal(persisted.progress.hanlin.units["fraction-multiply"].attempts, 20);
+});
+
+test("舊版（無 version/progress 欄位）資料讀取時會自動遷移到翰林版，版本偏好預設康軒版", () => {
+  localStorage.setItem(
+    "yue_math_g6_v1",
+    JSON.stringify({
+      streak: { count: 4, lastDate: "2026-06-01" },
+      units: { "fraction-divide": { attempts: 5, correct: 4, bestAccuracy: 80, lastDate: "2026-06-01", completedQuestionIds: ["fd-01"] } },
+      wrongBook: [{ unitId: "fraction-divide", questionId: "fd-02", date: "2026-06-01" }],
+      rewards: { xp: 60 },
+    })
+  );
+
+  const state = loadState();
+  assert.equal(state.version, "kangxuan");
+  assert.equal(state.progress.hanlin.units["fraction-divide"].attempts, 5);
+  assert.equal(state.progress.hanlin.wrongBook.length, 1);
+  assert.deepEqual(state.progress.kangxuan, { units: {}, wrongBook: [] });
+  assert.equal(state.rewards.xp, 60);
 });

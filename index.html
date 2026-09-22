@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>林小玥六年級數學學習站 | 翰林版</title>
-  <meta name="description" content="翰林版六年級數學離線學習站，提供分數乘除法練習、學習進度追蹤與家長檢視功能。" />
+  <title>林小玥六年級數學學習站 | 康軒版</title>
+  <meta name="description" content="康軒版（可切換翰林版）六年級數學離線學習站，提供分數乘除法練習、學習進度追蹤與家長檢視功能。" />
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
@@ -12,7 +12,7 @@
     <div class="header-inner">
       <div>
         <h1>🧮 林小玥六年級數學學習站</h1>
-        <div class="subtitle">翰林版．國小六年級</div>
+        <div class="subtitle" id="version-subtitle">康軒版．國小六年級</div>
       </div>
       <nav class="header-nav">
         <a href="parent.html">👨‍👩‍👧 家長進度檢視</a>
@@ -21,6 +21,15 @@
   </header>
 
   <main class="container">
+    <!-- 教材版本選擇 -->
+    <section class="card version-switcher">
+      <div class="version-switcher-row">
+        <span class="version-switcher-label">📚 教材版本：</span>
+        <div class="version-switcher-buttons" id="version-switcher-buttons"></div>
+      </div>
+      <p class="unit-meta">預設使用康軒版；切換版本後，單元卡片、今日任務、教學與練習內容都會依所選版本顯示，翰林版學習紀錄會完整保留。</p>
+    </section>
+
     <!-- 今日學習任務 -->
     <section class="card">
       <div class="today-task" id="today-task">

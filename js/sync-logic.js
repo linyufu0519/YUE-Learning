@@ -5,6 +5,8 @@
 // 保持單薄、只負責「呼叫」這些規則。
 import { todayString } from "./logic.js";
 import { normalizeRewards, normalizeDaily } from "./rewards.js";
+import { isValidVersion, DEFAULT_VERSION } from "./curriculum.js";
+import { normalizeLearningState } from "./state-shape.js";
 
 function pickLaterDate(a, b) {
   if (!a) return b || null;
@@ -120,42 +122,55 @@ function mergeRewards(localRewards, cloudRewards, today) {
   };
 }
 
+function pickPreferredVersion(localState, cloudState) {
+  if (localState && isValidVersion(localState.version)) return localState.version;
+  if (cloudState && isValidVersion(cloudState.version)) return cloudState.version;
+  return DEFAULT_VERSION;
+}
+
+function mergeProgress(localProgress, cloudProgress) {
+  const merged = {};
+  for (const version of ["kangxuan", "hanlin"]) {
+    const a = (localProgress && localProgress[version]) || { units: {}, wrongBook: [] };
+    const b = (cloudProgress && cloudProgress[version]) || { units: {}, wrongBook: [] };
+    merged[version] = {
+      units: mergeUnits(a.units, b.units),
+      wrongBook: mergeWrongBooks(a.wrongBook, b.wrongBook),
+    };
+  }
+  return merged;
+}
+
 /**
  * 合併本機（local）與雲端（cloud）學習狀態，用於使用者登入時。
  * 原則：不覆蓋、不遺失，各欄位分別採用「取較大值」「聯集」「取較新日期」等規則。
+ * 版本偏好（教材版本）以本機（目前裝置正在使用的版本）為優先，其次才是雲端。
+ * 進度資料依 kangxuan/hanlin 分別合併，避免兩個版本互相污染。
  * @param {object|null} localState
  * @param {object|null} cloudState
  * @param {string} today YYYY-MM-DD（可注入方便測試）
  */
 export function mergeState(localState, cloudState, today = todayString()) {
   if (!cloudState) {
+    const localNorm = normalizeLearningState(localState);
     const rawDaily = localState?.rewards?.daily;
-    const rewards = normalizeRewards(localState?.rewards);
-    rewards.daily = normalizeDaily(rawDaily, today);
-    return {
-      streak: localState?.streak || { count: 0, lastDate: null },
-      units: localState?.units || {},
-      wrongBook: localState?.wrongBook || [],
-      rewards,
-      updatedAt: new Date().toISOString(),
-    };
+    localNorm.rewards.daily = normalizeDaily(rawDaily, today);
+    return { ...localNorm, updatedAt: new Date().toISOString() };
   }
   if (!localState) {
+    const cloudNorm = normalizeLearningState(cloudState);
     const rawDaily = cloudState.rewards?.daily;
-    const rewards = normalizeRewards(cloudState.rewards);
-    rewards.daily = normalizeDaily(rawDaily, today);
-    return {
-      streak: cloudState.streak || { count: 0, lastDate: null },
-      units: cloudState.units || {},
-      wrongBook: cloudState.wrongBook || [],
-      rewards,
-      updatedAt: new Date().toISOString(),
-    };
+    cloudNorm.rewards.daily = normalizeDaily(rawDaily, today);
+    return { ...cloudNorm, updatedAt: new Date().toISOString() };
   }
+
+  const localNorm = normalizeLearningState(localState);
+  const cloudNorm = normalizeLearningState(cloudState);
+
   return {
-    streak: mergeStreak(localState.streak, cloudState.streak),
-    units: mergeUnits(localState.units, cloudState.units),
-    wrongBook: mergeWrongBooks(localState.wrongBook, cloudState.wrongBook),
+    version: pickPreferredVersion(localState, cloudState),
+    streak: mergeStreak(localNorm.streak, cloudNorm.streak),
+    progress: mergeProgress(localNorm.progress, cloudNorm.progress),
     rewards: mergeRewards(localState.rewards, cloudState.rewards, today),
     updatedAt: new Date().toISOString(),
   };

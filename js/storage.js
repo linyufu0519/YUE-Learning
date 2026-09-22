@@ -1,5 +1,5 @@
 // js/storage.js
-// localStorage 資料存取層：保存學習紀錄、錯題本與連續學習天數。
+// localStorage 資料存取層：保存學習紀錄、錯題本、連續學習天數與教材版本偏好。
 import {
   updateStreak,
   calcAccuracy,
@@ -14,6 +14,8 @@ import {
   getLevelInfo,
   normalizeRewards,
 } from "./rewards.js";
+import { defaultLearningState, normalizeLearningState } from "./state-shape.js";
+import { isValidVersion, DEFAULT_VERSION } from "./curriculum.js";
 
 const STORAGE_KEY = "yue_math_g6_v1";
 
@@ -39,28 +41,15 @@ function notifyListeners(state) {
   }
 }
 
-function defaultState() {
-  return {
-    streak: { count: 0, lastDate: null },
-    units: {}, // unitId -> { attempts, correct, bestAccuracy, lastDate, completedQuestionIds: [] }
-    wrongBook: [], // { unitId, questionId, prompt, yourAnswer, correctAnswer, explanation, date }
-    rewards: normalizeRewards(),
-  };
-}
-
 export function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultState();
+    if (!raw) return defaultLearningState();
     const parsed = JSON.parse(raw);
-    const state = { ...defaultState(), ...parsed };
-    state.rewards = normalizeRewards(state.rewards);
-    state.units = state.units || {};
-    state.wrongBook = Array.isArray(state.wrongBook) ? state.wrongBook : [];
-    return state;
+    return normalizeLearningState(parsed);
   } catch (e) {
     console.warn("讀取學習紀錄失敗，使用預設值。", e);
-    return defaultState();
+    return defaultLearningState();
   }
 }
 
@@ -72,27 +61,45 @@ export function saveState(state) {
 export function resetState() {
   // 使用 saveState 而非直接刪除 key，確保清除紀錄也會觸發狀態變更通知，
   // 讓已登入雲端同步的裝置把「清空後的狀態」一併同步到 Firestore。
-  const state = defaultState();
+  const state = defaultLearningState();
   saveState(state);
   return state;
 }
 
 /**
  * 以雲端合併後的完整狀態覆寫本機紀錄（供 sync-manager.js 於登入合併時使用）。
- * 會補齊缺少欄位、正規化 rewards，避免雲端資料結構較舊時造成錯誤。
+ * 會補齊缺少欄位、正規化資料結構，避免雲端資料結構較舊時造成錯誤。
  */
 export function replaceState(newState) {
-  const merged = { ...defaultState(), ...newState };
-  merged.rewards = normalizeRewards(merged.rewards);
-  merged.units = merged.units || {};
-  merged.wrongBook = Array.isArray(merged.wrongBook) ? merged.wrongBook : [];
+  const merged = normalizeLearningState(newState);
   saveState(merged);
   return merged;
 }
 
-function getUnitState(state, unitId) {
-  if (!state.units[unitId]) {
-    state.units[unitId] = {
+/** 取得目前使用者選擇的教材版本（預設康軒版）。 */
+export function getCurrentVersion() {
+  return loadState().version;
+}
+
+/** 切換教材版本偏好，並保存、觸發雲端同步。 */
+export function setCurrentVersion(version) {
+  const state = loadState();
+  state.version = isValidVersion(version) ? version : DEFAULT_VERSION;
+  saveState(state);
+  return state;
+}
+
+function getVersionProgress(state, version) {
+  const key = isValidVersion(version) ? version : state.version;
+  if (!state.progress[key]) {
+    state.progress[key] = { units: {}, wrongBook: [] };
+  }
+  return { key, progress: state.progress[key] };
+}
+
+function getUnitState(progress, unitId) {
+  if (!progress.units[unitId]) {
+    progress.units[unitId] = {
       attempts: 0,
       correct: 0,
       bestAccuracy: 0,
@@ -100,18 +107,19 @@ function getUnitState(state, unitId) {
       completedQuestionIds: [],
     };
   }
-  return state.units[unitId];
+  return progress.units[unitId];
 }
 
 /**
- * 記錄一題作答結果，更新單元統計、錯題本與連續學習天數。
- * @param {{unitId:string, questionId:string, prompt:string, isCorrect:boolean, yourAnswer:string, correctAnswer:string, explanation:string}} payload
+ * 記錄一題作答結果，更新（依版本區分的）單元統計、錯題本，並更新連續學習天數與獎勵。
+ * @param {{unitId:string, questionId:string, prompt:string, isCorrect:boolean, yourAnswer:string, correctAnswer:string, explanation:string, version?:string}} payload
  */
 export function recordAnswer(payload) {
   const state = loadState();
   const today = todayString();
-  const unit = getUnitState(state, payload.unitId);
-  const wasWrong = state.wrongBook.some(
+  const { progress } = getVersionProgress(state, payload.version);
+  const unit = getUnitState(progress, payload.unitId);
+  const wasWrong = progress.wrongBook.some(
     (w) => w.unitId === payload.unitId && w.questionId === payload.questionId
   );
 
@@ -125,7 +133,7 @@ export function recordAnswer(payload) {
   const accuracyNow = calcAccuracy(unit.correct, unit.attempts);
   unit.bestAccuracy = Math.max(unit.bestAccuracy, accuracyNow);
 
-  state.wrongBook = mergeWrongBook(state.wrongBook, {
+  progress.wrongBook = mergeWrongBook(progress.wrongBook, {
     unitId: payload.unitId,
     questionId: payload.questionId,
     prompt: payload.prompt,
@@ -155,9 +163,10 @@ export function recordAnswer(payload) {
   return { ...state, rewardMessage: rewardResult.message };
 }
 
-export function getUnitSummary(unitId, totalQuestions) {
+export function getUnitSummary(unitId, totalQuestions, version) {
   const state = loadState();
-  const unit = state.units[unitId];
+  const { progress } = getVersionProgress(state, version);
+  const unit = progress.units[unitId];
   if (!unit) {
     return {
       attempts: 0,
@@ -180,12 +189,14 @@ export function getStreak() {
   return loadState().streak;
 }
 
-export function getWrongBook() {
-  return loadState().wrongBook;
+export function getWrongBook(version) {
+  const state = loadState();
+  return getVersionProgress(state, version).progress.wrongBook;
 }
 
-export function getAllUnitStates() {
-  return loadState().units;
+export function getAllUnitStates(version) {
+  const state = loadState();
+  return getVersionProgress(state, version).progress.units;
 }
 
 export function getRecentQuestionIds(unitId) {

@@ -1,12 +1,11 @@
 // js/lesson.js
-import { getUnitById } from "./data.js";
-import { getLesson } from "./lessons.js";
+import { resolveUnit, getLessonForVersion, isPracticeAvailable, getVersionLabel } from "./curriculum.js";
 import { recordLessonRead } from "./storage.js";
 
 const params = new URLSearchParams(window.location.search);
 const unitId = params.get("unit");
-const unit = getUnitById(unitId);
-const lesson = getLesson(unitId);
+const { version, unit } = resolveUnit(unitId);
+const lesson = unit ? getLessonForVersion(version, unitId) : null;
 const area = document.getElementById("lesson-area");
 
 if (!unit || !lesson) {
@@ -14,10 +13,13 @@ if (!unit || !lesson) {
 } else {
   document.getElementById("lesson-title").textContent = `${unit.icon} ${lesson.title}`;
   document.title = `${lesson.title} | 林小玥六年級數學學習站`;
+  const subtitleEl = document.querySelector(".subtitle");
+  if (subtitleEl) subtitleEl.textContent = `${getVersionLabel(version)}．先學觀念，再練習挑戰`;
   renderLesson();
 }
 
 function renderLesson() {
+  const practiceReady = isPracticeAvailable(version, unit.id);
   area.innerHTML = `
     <h2>${escapeHtml(lesson.title)}</h2>
     <p>${escapeHtml(lesson.intro)}</p>
@@ -31,7 +33,11 @@ function renderLesson() {
     ${renderList("自我檢查", lesson.checks)}
     <div class="lesson-actions">
       <button class="btn secondary" id="btn-complete-lesson">我讀完了</button>
-      ${unit.available ? `<a class="btn" href="practice.html?unit=${unit.id}">前往練習</a>` : ""}
+      ${
+        practiceReady
+          ? `<a class="btn" href="practice.html?unit=${unit.id}">前往練習</a>`
+          : `<button class="btn" disabled>練習題庫建置中</button>`
+      }
       <a class="btn outline" href="index.html">回首頁</a>
     </div>
     <div class="lesson-message" id="lesson-message" aria-live="polite"></div>
