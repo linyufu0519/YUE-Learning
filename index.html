@@ -73,20 +73,32 @@
     <!-- 帳號與雲端同步 -->
     <section class="card" id="account-card">
       <h2 class="section-title" style="margin-top:0;">帳號與雲端同步</h2>
-      <p class="sync-status" id="sync-status">初始化中…</p>
-      <form id="auth-form" class="parent-login-form">
-        <label for="txt-email">Email（親子共用帳號）</label>
-        <input type="email" id="txt-email" autocomplete="username" placeholder="example@mail.com" />
-        <label for="txt-password">密碼</label>
-        <input type="password" id="txt-password" autocomplete="current-password" placeholder="至少 6 碼" />
-        <div class="input-row">
-          <button type="submit" class="btn" id="btn-login">登入</button>
-          <button type="button" class="btn secondary" id="btn-register">註冊（第一次使用）</button>
-          <button type="button" class="btn outline" id="btn-logout" style="display:none;">登出</button>
-        </div>
-        <p class="password-error" id="auth-error" role="alert" aria-live="polite"></p>
-      </form>
-      <p class="unit-meta" id="account-hint">尚未設定雲端同步時，這裡不會發出任何網路連線，所有紀錄僅保存在本機瀏覽器。若要啟用，請參考 FIREBASE_SETUP.md。</p>
+
+      <!-- 已登入且同步成功後的精簡卡片 -->
+      <div class="sync-compact" id="sync-compact" hidden>
+        <p class="sync-status" id="sync-compact-status"></p>
+        <p class="unit-meta" id="sync-compact-detail"></p>
+        <button type="button" class="btn outline small" id="btn-expand-account" aria-expanded="false" aria-controls="account-form-wrap">⚙️ 管理帳號與同步</button>
+      </div>
+
+      <!-- 完整登入/設定表單（未登入、未設定、同步錯誤時一律顯示） -->
+      <div id="account-form-wrap">
+        <p class="sync-status" id="sync-status">初始化中…</p>
+        <form id="auth-form" class="parent-login-form">
+          <label for="txt-email">Email（親子共用帳號）</label>
+          <input type="email" id="txt-email" autocomplete="username" placeholder="example@mail.com" />
+          <label for="txt-password">密碼</label>
+          <input type="password" id="txt-password" autocomplete="current-password" placeholder="至少 6 碼" />
+          <div class="input-row">
+            <button type="submit" class="btn" id="btn-login">登入</button>
+            <button type="button" class="btn secondary" id="btn-register">註冊（第一次使用）</button>
+            <button type="button" class="btn outline" id="btn-logout" style="display:none;">登出</button>
+            <button type="button" class="btn outline small" id="btn-collapse-account" style="display:none;">收合帳號區塊</button>
+          </div>
+          <p class="password-error" id="auth-error" role="alert" aria-live="polite"></p>
+        </form>
+        <p class="unit-meta" id="account-hint">尚未設定雲端同步時，這裡不會發出任何網路連線，所有紀錄僅保存在本機瀏覽器。若要啟用，請參考 FIREBASE_SETUP.md。</p>
+      </div>
     </section>
 
     <!-- 每日任務與獎勵 -->
@@ -102,19 +114,31 @@
             <div class="progress-bar-fill" id="reward-progress-bar" style="width: 0%;"></div>
           </div>
           <div class="badge-list" id="badge-list"></div>
+          <button type="button" class="btn secondary level-reward-trigger" id="btn-open-level-rewards" aria-haspopup="dialog" aria-controls="level-reward-modal">🎁 查看等級獎品</button>
         </div>
         <div class="card">
           <h3 style="margin-top:0;">今天的小任務</h3>
           <div class="mission-list" id="mission-list"></div>
         </div>
       </div>
-      <div class="card" style="margin-top: 12px;">
-        <h3 style="margin-top:0;">🎁 等級獎品</h3>
+    </section>
+
+    <!-- 等級獎品彈出視窗 -->
+    <div class="modal-overlay" id="level-reward-modal" hidden>
+      <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="level-reward-modal-title">
+        <div class="modal-header">
+          <h3 id="level-reward-modal-title" style="margin:0;">🎁 等級獎品</h3>
+          <button type="button" class="btn icon" id="btn-close-level-rewards" aria-label="關閉等級獎品視窗">✕</button>
+        </div>
+        <p class="unit-meta" id="level-reward-modal-level"></p>
         <p class="unit-meta" id="level-reward-note"></p>
         <div class="level-reward-list" id="level-reward-list"></div>
         <p class="unit-meta">獎品是家長實際發放的零用錢，解鎖後請跟爸媽說一聲，由爸媽在家長頁確認領取喔！</p>
+        <div class="modal-actions">
+          <button type="button" class="btn" id="btn-close-level-rewards-2">關閉</button>
+        </div>
       </div>
-    </section>
+    </div>
 
     <!-- 單元卡片 -->
     <section>

@@ -421,6 +421,108 @@ a {
   font-size: 0.85rem;
 }
 
+.level-reward-trigger {
+  margin-top: 12px;
+}
+
+/* ---------- 等級獎品彈出視窗 ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 20, 10, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1000;
+}
+
+.modal-overlay[hidden] {
+  display: none;
+}
+
+.modal-panel {
+  background: #fff;
+  border-radius: 18px;
+  padding: 20px;
+  width: 100%;
+  max-width: 460px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.btn.icon {
+  background: transparent;
+  color: var(--color-muted);
+  padding: 4px 10px;
+  font-size: 1.1rem;
+  border-radius: 999px;
+}
+
+.btn.icon:hover {
+  background: #f5f0e8;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+@media (max-width: 600px) {
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .modal-panel {
+    max-width: 100%;
+    width: 100%;
+    max-height: 90vh;
+    border-radius: 18px 18px 0 0;
+  }
+}
+
+/* ---------- 帳號與雲端同步：已登入精簡卡片 ---------- */
+.sync-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 2px solid #d7ecd7;
+  border-radius: 12px;
+  background: #f2faf2;
+}
+
+.sync-compact[hidden] {
+  display: none;
+}
+
+.sync-compact .sync-status {
+  margin: 0;
+}
+
+.sync-compact #sync-compact-detail {
+  margin: 0 0 6px;
+}
+
+.sync-compact button {
+  align-self: flex-start;
+}
+
+#account-form-wrap[hidden] {
+  display: none;
+}
+
 /* ---------- 練習頁 ---------- */
 .practice-header {
   display: flex;

@@ -1,0 +1,133 @@
+【變更摘要】首頁「等級獎品」改為彈出視窗入口＋「帳號與雲端同步」已登入後收合為精簡卡片
+日期：2026-09-22
+專案：linyufu0519/YUE-Learning（林小玥六年級數學學習站）
+
+【使用者需求】（跨 session 訊息，兩批需求合併於同一次部署）
+1. 等級獎品 UI 調整
+   - 將首頁原本直接展開的等級獎品清單，整合進「每日任務與獎勵」的等級卡片內，
+     放在文案「完成每日任務就能收集徽章！」（badge-list）正下方。
+   - 提供明確可點擊入口（🎁 查看等級獎品按鈕），不要在首頁直接展開 10 個里程碑。
+   - 點擊後開啟新 layout（modal/dialog，手機適合底部抽屜樣式）顯示完整清單，
+     需有清楚關閉/返回操作與基本無障礙語意（button、focus、Esc 關閉）。
+   - 新 layout 顯示目前等級、各里程碑狀態與金額、距離下一個獎品差幾級、100 級上限說明。
+   - 學生端不可出現家長確認領取按鈕；家長頁既有完整清單與確認領取功能維持不變。
+   - 不改變等級/XP/任務/獎品資料規則，不破壞 localStorage/Firebase 同步。
+2. 帳號與雲端同步 UI 調整
+   - 已登入且成功完成同步後，完整帳號表單改為精簡可收合狀態：顯示同步已啟用、
+     遮蔽/截短後的帳號、最近同步時間。
+   - 提供「管理帳號與同步」展開入口，點擊才顯示完整內容（既有的登入/註冊/登出操作）；
+     可再收合。
+   - 未設定 Firebase、未登入、同步錯誤時，維持原本完整表單與明確錯誤訊息，不可誤縮小。
+   - 登出後回復完整登入表單；localStorage/Firebase 行為不得改變。
+   - 手機易用、鍵盤可操作、無障礙語意正確。
+
+【根因與設計】
+- 等級獎品清單直接展開在首頁會佔用大量版面（10 個里程碑項目），且與「每日任務與獎勵」
+  卡片的視覺重心（今天要做什麼）互相干擾，因此改為「入口按鈕＋彈出視窗」模式，符合
+  漸進式揭露（progressive disclosure）原則：預設只顯示最重要的每日任務，等級獎品這種
+  「偶爾查看」的內容收在點擊後才出現的 modal 中。
+- 帳號同步表單在「已登入且已同步」狀態下，主要資訊只剩「目前是誰、上次同步是什麼時候」，
+  完整的 Email/密碼輸入欄位、註冊按鈕在此狀態下已無意義，長期佔用版面；但同步過程中
+  會頻繁在 syncing/synced 之間切換（每次答題都會觸發一次背景同步），若直接依 mode 即時
+  決定顯示精簡或完整表單，畫面會不斷「展開⇄收合」閃爍。因此新增 `hasSyncedOnce`
+  （是否已經同步成功過一次）與 `manualExpanded`（使用者是否手動展開）兩個狀態，
+  只有在「第一次尚未同步成功」「未登入」「未設定 Firebase」「同步錯誤」時強制顯示
+  完整表單，其餘情況下維持使用者上次的收合/展開選擇，避免閃爍且符合安全性要求
+  （錯誤/未登入絕對不可被誤縮到看不到操作入口）。
+- 兩者的「何時該顯示什麼」都抽成 `js/ui-logic.js` 的純函式（`computeAccountPanelState`、
+  `nextAccountPanelFlags`、`getNextMilestoneGap`、`maskEmail`），不觸碰 DOM，方便在
+  Node 測試中窮舉各種狀態組合；`js/home.js` 只負責依據這些函式的回傳值搬動 CSS class /
+  hidden 屬性與文字內容，維持既有專案「純邏輯與 DOM 渲染分離」的慣例（沿用自
+  `js/logic.js`、`js/rewards.js`、`js/sync-logic.js` 的既有作法）。
+- Email 遮蔽只保留前兩碼＋星號＋完整網域（例如 `pa****@mail.com`），避免完整帳號直接
+  暴露在畫面上，同時仍可讓家長辨識是哪個帳號。
+- 「最近同步時間」透過在 `js/sync-manager.js` 每次成功同步（`mode: "synced"`）時額外
+  記錄 `lastSyncedAt`（ISO 字串，僅存在於執行期的記憶體狀態物件，不寫入 localStorage/
+  Firestore），首頁讀取後用 `toLocaleString("zh-TW")` 顯示，不影響既有同步/合併邏輯。
+
+【修改檔案】
+1. js/ui-logic.js（新增）
+   - `maskEmail(email)`：遮蔽 Email 帳號名稱。
+   - `computeAccountPanelState({mode, hasSyncedOnce, manualExpanded})`：計算精簡卡片／
+     完整表單的顯示狀態（`showCompact`／`showForm`／`showCollapseButton`／`signedIn`）。
+   - `nextAccountPanelFlags(status, prev)`：依同步狀態轉移 `hasSyncedOnce`／`manualExpanded`
+     兩個旗標（同步成功→標記已同步過；未登入/未設定/登出→重置；錯誤→強制展開）。
+   - `getNextMilestoneGap(currentLevel, milestones)`：找出下一個未解鎖里程碑與差距級數，
+     全部解鎖或清單為空時安全回傳 `null`。
+2. js/sync-manager.js
+   - 兩處 `setStatus({mode:"synced", ...})` 都加上 `lastSyncedAt: new Date().toISOString()`，
+     供首頁精簡卡片顯示「最近同步時間」；不影響既有合併/推送邏輯。
+3. js/home.js
+   - `renderRewards()`：等級獎品渲染改為呼叫 `renderLevelRewards(rewards.levelRewards,
+     rewards.levelInfo.level)`（多帶目前等級）。
+   - `renderLevelRewards()`：改為更新彈出視窗內容（`#level-reward-modal-level`／
+     `#level-reward-note`／`#level-reward-list`），並用 `getNextMilestoneGap` 計算「距離
+     下一個里程碑還差幾級」文字。
+   - 新增 `setupLevelRewardModal()`：綁定入口按鈕開啟、關閉按鈕（含 modal 內與 header 上各
+     一個）、點擊遮罩外側關閉、`Escape` 鍵關閉，並在開/關時把焦點移到關閉按鈕/開啟按鈕上。
+   - `setupAccountUI()` 重寫：改用 `computeAccountPanelState`／`nextAccountPanelFlags`／
+     `maskEmail` 決定精簡卡片或完整表單的顯示，並綁定「管理帳號與同步」展開按鈕、
+     「收合帳號區塊」按鈕；登出時主動重置 `hasSyncedOnce`／`manualExpanded`，確保下次
+     一定顯示完整表單。
+4. index.html
+   - 「帳號與雲端同步」區塊拆成 `#sync-compact`（精簡卡片，預設 `hidden`）與
+     `#account-form-wrap`（完整表單，預設可見），並新增「⚙️ 管理帳號與同步」／
+     「收合帳號區塊」兩個按鈕。
+   - 「每日任務與獎勵」卡片：在 `#badge-list` 正下方新增「🎁 查看等級獎品」入口按鈕；
+     移除原本直接展開的等級獎品卡片區塊。
+   - 新增 `#level-reward-modal`（`role="dialog"`、`aria-modal="true"`，預設 `hidden`），
+     內含目前等級/下一里程碑提示、等級獎品清單、關閉按鈕（含右上角 ✕ 與底部「關閉」）。
+5. css/styles.css
+   - 新增 `.level-reward-trigger`、`.modal-overlay`／`.modal-panel`／`.modal-header`／
+     `.modal-actions`（含 `max-width:600px` 的手機底部抽屜樣式）、`.btn.icon`、
+     `.sync-compact`（精簡卡片樣式）、`#account-form-wrap[hidden]`。
+6. 測試新增：
+   - tests/ui-logic.test.js（18 項）：`maskEmail`、`computeAccountPanelState`（已同步精簡、
+     手動展開、錯誤強制展開、未設定/未登入強制展開、已同步過的 syncing 不閃爍、首次登入
+     syncing 顯示完整表單）、`nextAccountPanelFlags`（同步成功標記、登出/未登入重置、
+     錯誤強制展開、syncing 不改變旗標）、`getNextMilestoneGap`（找下一里程碑、全解鎖回傳
+     null、空清單/非陣列安全處理）。
+   - tests/html-structure.test.js（7 項）：靜態檢查 index.html/parent.html 原始碼——
+     等級獎品入口位於 badge-list 之後（reward-card 內）、彈出視窗預設 hidden 且具備
+     dialog 語意與關閉按鈕、首頁不含 `data-confirm-level`（家長確認控制項）、家長頁仍保留
+     `#p-level-reward-list`、帳號精簡卡片預設 hidden／完整表單預設可見、展開/收合按鈕存在。
+7. README.md
+   - 更新等級獎品段落（改為彈出視窗說明）、雲端同步段落（新增帳號收合行為說明）、
+     檔案結構（新增 `ui-logic.js`／兩個新測試檔）、測試段落（更新為 125 項並列出新增
+     測試涵蓋範圍）。
+8. QA/20260922_等級獎品彈窗與帳號同步收合UI_變更摘要.txt（本檔案）。
+
+【相容性確認】
+- 未修改任何 localStorage/Firebase 資料結構、`rewards.js`／`storage.js`／`sync-logic.js`
+  的合併與持久化規則；本輪變動全部集中在「首頁如何呈現既有資料」的 UI 層。
+- `js/parent.js` 完全未修改，家長頁的完整等級獎品清單與「確認領取」按鈕（含 8888 密碼
+  授權）維持原樣。
+- `lastSyncedAt` 只存在於 `sync-manager.js` 執行期的記憶體狀態物件中，不寫入
+  localStorage 或 Firestore，重新整理頁面後會重新走一次 `initSync()` 流程，不影響既有
+  同步/合併行為。
+- 首頁在 JS 尚未執行完成前（例如載入極慢或 JS 被封鎖的極端情況），原始 HTML 預設值為
+  「精簡卡片 hidden、完整表單顯示、彈出視窗 hidden」，符合「未登入/未設定時完整表單可見、
+  獎品清單不會誤展開」的安全預設。
+
+【測試結果】
+- `node --test tests/` → 125 項全數通過（新增 25 項：ui-logic 18 項、html-structure 7 項；
+  原有 100 項全數維持通過）。
+- `node --check` 對 `js/*.js` 全部檔案逐一語法檢查 → 全部通過。
+- 本機 HTTP smoke test（index.html、parent.html、practice.html?unit=fraction-multiply、
+  lesson.html?unit=fraction-multiply）→ 全部 200。
+- 本機 Edge headless `--dump-dom` 驗證：
+  - `index.html`：`#sync-compact` 預設 `hidden`、`#account-form-wrap` 可見（未設定 Firebase
+    時完整表單顯示）；`#btn-open-level-rewards` 位於 reward-card 內、`#level-reward-modal`
+    預設 `hidden`；`#level-reward-modal-level` 正確顯示「目前等級 Lv.1，距離 Lv.10（零用錢
+    100 元）還差 9 級」。
+  - `parent.html`：`#parent-dashboard` 仍維持 `hidden`（未輸入密碼前），未受本輪 UI 調整
+    影響。
+- 說明：專案刻意維持零 npm 相依（無 jsdom/puppeteer），因此點擊互動（開啟/關閉 modal、
+  展開/收合帳號區塊）以「純邏輯函式的窮舉測試＋事件綁定程式碼審查＋首次渲染狀態的
+  headless 瀏覽器驗證」三者組合把關，未做全自動化 E2E 點擊模擬；這與本 session 先前
+  「自我檢查勾選制」等功能的驗證方式一致。
+
+【後續操作】
+- commit 並 push 到 origin main（沿用既有 Basic Auth workaround，非 force push）。
+- 等待 GitHub Pages built 後，於線上網址人工點擊驗證：「🎁 查看等級獎品」開啟/關閉 modal、
+  「⚙️ 管理帳號與同步」展開/收合帳號表單、登出後表單回復完整狀態。

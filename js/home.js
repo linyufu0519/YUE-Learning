@@ -3,9 +3,11 @@ import { getUnitsForVersion, getAvailableQuestionCount, getVersionLabel, isPract
 import { getRewardSummary, getUnitSummary, getStreak, getCurrentVersion } from "./storage.js";
 import { describeSyncStatus } from "./sync-logic.js";
 import { renderVersionSwitcher } from "./version-ui.js";
+import { maskEmail, computeAccountPanelState, nextAccountPanelFlags, getNextMilestoneGap } from "./ui-logic.js";
 import {
   initSync,
   onSyncStatusChange,
+  getSyncStatus,
   registerAccount,
   loginAccount,
   logoutAccount,
@@ -158,11 +160,18 @@ function renderRewards() {
     )
     .join("");
 
-  renderLevelRewards(rewards.levelRewards);
+  renderLevelRewards(rewards.levelRewards, rewards.levelInfo.level);
 }
 
-function renderLevelRewards(levelRewards) {
+function renderLevelRewards(levelRewards, currentLevel) {
   document.getElementById("level-reward-note").textContent = levelRewards.maxMilestoneNote;
+
+  const gap = getNextMilestoneGap(currentLevel, levelRewards.milestones);
+  const levelEl = document.getElementById("level-reward-modal-level");
+  levelEl.textContent = gap
+    ? `目前等級 Lv.${currentLevel}，距離 Lv.${gap.level}（零用錢 ${gap.amount} 元）還差 ${gap.levelsRemaining} 級`
+    : `目前等級 Lv.${currentLevel}，所有等級獎品里程碑都已解鎖囉！`;
+
   document.getElementById("level-reward-list").innerHTML = levelRewards.milestones
     .map((m) => {
       const state = m.confirmed ? "confirmed" : m.unlocked ? "unlocked" : "locked";
@@ -180,11 +189,38 @@ function renderLevelRewards(levelRewards) {
     .join("");
 }
 
+function setupLevelRewardModal() {
+  const modal = document.getElementById("level-reward-modal");
+  const openBtn = document.getElementById("btn-open-level-rewards");
+  const closeBtn = document.getElementById("btn-close-level-rewards");
+  const closeBtn2 = document.getElementById("btn-close-level-rewards-2");
+
+  function openModal() {
+    modal.hidden = false;
+    closeBtn.focus();
+  }
+  function closeModal() {
+    modal.hidden = true;
+    openBtn.focus();
+  }
+
+  openBtn.addEventListener("click", openModal);
+  closeBtn.addEventListener("click", closeModal);
+  closeBtn2.addEventListener("click", closeModal);
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) closeModal();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !modal.hidden) closeModal();
+  });
+}
+
 renderVersionHeader();
 renderTodayTask();
 renderOverallProgress();
 renderRewards();
 renderUnitGrid();
+setupLevelRewardModal();
 
 // ---- 帳號與雲端同步 ----
 function setupAccountUI() {
@@ -196,15 +232,54 @@ function setupAccountUI() {
   const btnLogin = document.getElementById("btn-login");
   const btnRegister = document.getElementById("btn-register");
   const btnLogout = document.getElementById("btn-logout");
+  const btnExpand = document.getElementById("btn-expand-account");
+  const btnCollapse = document.getElementById("btn-collapse-account");
+  const formWrap = document.getElementById("account-form-wrap");
+  const compactWrap = document.getElementById("sync-compact");
+  const compactStatusEl = document.getElementById("sync-compact-status");
+  const compactDetailEl = document.getElementById("sync-compact-detail");
+
+  let panelFlags = { hasSyncedOnce: false, manualExpanded: false };
+
+  function renderPanel(status) {
+    panelFlags = nextAccountPanelFlags(status, panelFlags);
+    const panel = computeAccountPanelState({ mode: status.mode, ...panelFlags });
+
+    compactWrap.hidden = !panel.showCompact;
+    formWrap.hidden = !panel.showForm;
+    btnExpand.setAttribute("aria-expanded", String(!panel.showCompact));
+    btnCollapse.style.display = panel.showCollapseButton ? "" : "none";
+
+    if (panel.showCompact) {
+      compactStatusEl.textContent =
+        status.mode === "syncing" ? "☁️ 同步中…" : "☁️ 雲端同步已啟用";
+      const emailText = maskEmail(status.user?.email);
+      const timeText = status.lastSyncedAt
+        ? `最近同步：${new Date(status.lastSyncedAt).toLocaleString("zh-TW", { hour12: false })}`
+        : "";
+      compactDetailEl.textContent = [emailText, timeText].filter(Boolean).join("・");
+    }
+
+    statusEl.textContent = describeSyncStatus(status);
+    btnLogout.style.display = panel.signedIn ? "" : "none";
+    btnLogin.style.display = panel.signedIn ? "none" : "";
+    btnRegister.style.display = panel.signedIn ? "none" : "";
+    emailInput.disabled = panel.signedIn;
+    passwordInput.disabled = panel.signedIn;
+  }
 
   onSyncStatusChange((status) => {
-    statusEl.textContent = describeSyncStatus(status);
-    const signedIn = status.mode === "synced" || status.mode === "syncing";
-    btnLogout.style.display = signedIn ? "" : "none";
-    btnLogin.style.display = signedIn ? "none" : "";
-    btnRegister.style.display = signedIn ? "none" : "";
-    emailInput.disabled = signedIn;
-    passwordInput.disabled = signedIn;
+    renderPanel(status);
+  });
+
+  btnExpand.addEventListener("click", () => {
+    panelFlags = { ...panelFlags, manualExpanded: true };
+    renderPanel(getSyncStatus());
+  });
+
+  btnCollapse.addEventListener("click", () => {
+    panelFlags = { ...panelFlags, manualExpanded: false };
+    renderPanel(getSyncStatus());
   });
 
   form.addEventListener("submit", async (event) => {
@@ -229,6 +304,7 @@ function setupAccountUI() {
   });
 
   btnLogout.addEventListener("click", async () => {
+    panelFlags = { hasSyncedOnce: false, manualExpanded: false };
     await logoutAccount();
   });
 

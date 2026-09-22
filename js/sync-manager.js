@@ -43,7 +43,7 @@ function ensurePushSubscription() {
     try {
       setStatus({ mode: "syncing", user: { email: currentUser.email } });
       await cloud.pushCloudState(currentUser.uid, buildCloudPayload(state));
-      setStatus({ mode: "synced", user: { email: currentUser.email } });
+      setStatus({ mode: "synced", user: { email: currentUser.email }, lastSyncedAt: new Date().toISOString() });
     } catch (error) {
       setStatus({ mode: "error", user: { email: currentUser.email }, error: error.message });
     }
@@ -71,7 +71,7 @@ export async function initSync() {
       ensurePushSubscription();
 
       if (lastMergedUid === user.uid) {
-        setStatus({ mode: "synced", user: { email: user.email } });
+        setStatus({ mode: "synced", user: { email: user.email }, lastSyncedAt: new Date().toISOString() });
         return;
       }
 
