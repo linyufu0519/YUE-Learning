@@ -13,6 +13,7 @@ function fixedRng(values) {
 }
 
 test("已開放單元題庫至少 30 題", () => {
+  assert.ok(getAvailableQuestionCount("kx-gcf-lcm") >= 30);
   assert.ok(getAvailableQuestionCount("fraction-multiply") >= 30);
   assert.ok(getAvailableQuestionCount("fraction-divide") >= 30);
 });
@@ -26,6 +27,29 @@ test("可依難度篩選出題", () => {
   });
   assert.equal(questions.length, 6);
   assert.ok(questions.every((q) => q.difficulty === "hard"));
+});
+
+test("康軒第1單元題庫涵蓋 easy/medium/hard 並可隨機出題", () => {
+  for (const difficulty of ["easy", "medium", "hard"]) {
+    const questions = selectPracticeQuestions({
+      unitId: "kx-gcf-lcm",
+      difficulty,
+      count: 5,
+      rng: fixedRng([0.2, 0.8, 0.4]),
+    });
+    assert.equal(questions.length, 5);
+    assert.ok(questions.every((q) => q.difficulty === difficulty));
+  }
+});
+
+test("康軒第1單元數值輸入題可正確判定答案", () => {
+  const [question] = selectPracticeQuestions({
+    unitId: "kx-gcf-lcm",
+    difficulty: "hard",
+    count: 1,
+    rng: fixedRng([0]),
+  });
+  assert.equal(gradeAnswer({ type: "input", answer: question.answer }, question.answer), true);
 });
 
 test("抽題會避開最近出現題目", () => {

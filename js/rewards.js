@@ -83,7 +83,8 @@ export function getLevelInfo(xp = 0) {
 }
 
 export function evaluateMissions(rewards) {
-  const daily = normalizeDaily(rewards.daily);
+  const dailyDate = rewards.daily?.date || todayString();
+  const daily = normalizeDaily(rewards.daily, dailyDate);
   return DAILY_MISSIONS.map((mission) => {
     const value =
       mission.id === "practice-5"

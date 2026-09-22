@@ -1,0 +1,143 @@
+================================================================================
+  YUE-Learning 康軒版教材 — 第1單元可用性修復與題庫補齊 變更摘要
+  日期：2026-09-22
+================================================================================
+
+【USER 需求】
+  使用者回報康軒版第1單元「最大公因數與最小公倍數」無法使用，且除第2單元分數除法外，
+  其他康軒單元看起來都不可用。需求為立即根因分析並修復：康軒第1～9單元都必須能進入
+  教學模式；第1單元需補完整教學與基礎練習題庫；第3～9單元若無完整題庫，仍須可進入教學，
+  練習入口需明確標示「題庫建置中」；不得破壞翰林版、localStorage 與 Firebase 同步相容性。
+
+--------------------------------------------------------------------------------
+
+【影響範圍】
+
+  程式位置一：js/data-kangxuan.js
+  函式／區塊：KANGXUAN_UNITS
+  說明：康軒版六上單元目錄與練習題庫可用狀態。
+  異動：第1單元改為可練習並指定題庫 key；第3～9單元與複習單元改為教學可用，避免首頁顯示「敬請期待」。
+
+  修改前：
+    {
+      id: "kx-unit1",
+      title: "第1單元 最大公因數與最小公倍數",
+      available: false,
+      sections: ["1-1 質數和合數", "1-2 質因數和質因數分解", "1-3 最大公因數", "1-4 最小公倍數"],
+    }
+
+  修改後：
+    {
+      id: "kx-unit1",
+      title: "第1單元 最大公因數與最小公倍數",
+      available: true,
+      sections: ["1-1 質數和合數", "1-2 質因數和質因數分解", "1-3 最大公因數", "1-4 最小公倍數"],
+      practiceBankKey: "kx-gcf-lcm",
+    }
+
+  ─────────────────────────────────────────────────────────────────────────────
+
+  程式位置二：js/question-engine.js
+  函式／區塊：gcfLcmBank、getQuestionBank
+  說明：動態題目產生器。
+  異動：新增康軒第1單元題庫，涵蓋質數/合數、質因數分解、最大公因數、最小公倍數，並支援 easy/medium/hard 難度、隨機抽題、選擇題與輸入題。
+
+  修改前：
+    export function getQuestionBank(unitId) {
+      if (unitId === "fraction-multiply") return multiplicationBank();
+      if (unitId === "fraction-divide") return divisionBank();
+      return [];
+    }
+
+  修改後：
+    export function getQuestionBank(unitId) {
+      if (unitId === "kx-gcf-lcm") return gcfLcmBank();
+      if (unitId === "fraction-multiply") return multiplicationBank();
+      if (unitId === "fraction-divide") return divisionBank();
+      return [];
+    }
+
+  ─────────────────────────────────────────────────────────────────────────────
+
+  程式位置三：js/lessons-kangxuan.js
+  函式／區塊：KANGXUAN_LESSONS["kx-unit1"]
+  說明：康軒版教學模式內容。
+  異動：第1單元由基礎導覽升級為完整教學，包含概念、步驟、常見錯誤、例題解析與自我檢查。
+
+  ─────────────────────────────────────────────────────────────────────────────
+
+  程式位置四：js/home.js、css/styles.css
+  函式／區塊：renderUnitGrid、unit-card 樣式
+  說明：首頁單元卡片狀態呈現。
+  異動：未開放題庫的康軒單元不再以 locked/敬請期待 呈現，改為 lesson-only/題庫建置中，教學按鈕仍可操作。
+
+  修改前：
+    card.className = `unit-card ${practiceAvailable ? "available" : "locked"}`;
+    badge = `<span class="badge locked">${unit.available ? "題庫建置中" : "敬請期待"}</span>`;
+
+  修改後：
+    card.className = `unit-card ${practiceAvailable ? "available" : "lesson-only"}`;
+    badge = `<span class="badge pending">題庫建置中</span>`;
+
+  ─────────────────────────────────────────────────────────────────────────────
+
+  程式位置五：js/parent.js
+  函式／區塊：render
+  說明：家長進度頁單元列表。
+  異動：家長頁依版本列出全部康軒單元；未開放題庫者顯示「題庫建置中／教學可用」，不再只列可練習單元。
+
+  ─────────────────────────────────────────────────────────────────────────────
+
+  程式位置六：js/rewards.js
+  函式／區塊：evaluateMissions
+  說明：每日任務狀態計算。
+  異動：修正既有日期相依問題；計算每日任務時保留傳入 rewards.daily.date，不再強制改成系統今天，讓測試與指定日期情境穩定。
+
+  修改前：
+    const daily = normalizeDaily(rewards.daily);
+
+  修改後：
+    const dailyDate = rewards.daily?.date || todayString();
+    const daily = normalizeDaily(rewards.daily, dailyDate);
+
+  ─────────────────────────────────────────────────────────────────────────────
+
+  程式位置七：tests/curriculum.test.js、tests/question-engine.test.js
+  函式／區塊：教材版本/題庫回歸測試
+  說明：防止康軒單元再次被誤判為不可用或映射錯誤。
+  異動：新增測試覆蓋康軒第1單元題庫、1～9單元教學、無題庫單元仍可教學、康軒/翰林 unit id 映射，以及第1單元難度分級與可產題。
+
+--------------------------------------------------------------------------------
+
+【5-Whys 根因鏈】
+  1. 為什麼使用者覺得康軒第1單元無法使用？
+     首頁第1單元卡片以 locked 樣式和「敬請期待」徽章呈現，練習頁也回覆尚未開放。
+  2. 為什麼第1單元被當成未開放？
+     js/data-kangxuan.js 中 kx-unit1 設定 available:false 且沒有 practiceBankKey。
+  3. 為什麼只有第2單元可練習？
+     curriculum.js 的練習可用條件為 unit.available && practiceBankKey；前版只為 kx-unit2 設定 fraction-divide 題庫映射。
+  4. 為什麼第3～9單元雖有教學仍看起來鎖住？
+     home.js 把所有未開放題庫的單元統一套用 locked class 與「敬請期待」文案，沒有區分「教學可用」與「練習題庫可用」。
+  5. 為什麼前版沒有攔截此問題？
+     測試只驗證資料層教學內容存在，未覆蓋首頁卡片狀態、第1單元題庫可用性與 kx-* 單元映射的完整情境。
+
+--------------------------------------------------------------------------------
+
+【未修改項目】
+  翰林版單元與題庫
+  說明：本次問題集中在康軒版單元狀態與第1單元題庫缺漏；翰林版既有分數乘法/分數除法題庫與教學入口未改動，僅透過回歸測試確認 unit id 不會被誤讀。
+
+  Firebase I/O 串接
+  說明：本次未變更雲端讀寫路徑；第1單元透過既有 versioned progress 結構寫入 kx-unit1，localStorage 與 Firebase 合併規則維持相容。
+
+--------------------------------------------------------------------------------
+
+【測試建議】
+  1. 開啟首頁預設康軒版，確認第1單元顯示「可挑戰」且可點「開始練習」。
+  2. 點入 lesson.html?unit=kx-unit1，確認有質數/合數、質因數分解、最大公因數、最小公倍數教學內容與「前往練習」按鈕。
+  3. 點入 practice.html?unit=kx-unit1，確認可產生第1題，難度可切換 easy/medium/hard，作答後有解析。
+  4. 點入 lesson.html?unit=kx-unit3 與 lesson.html?unit=kx-unit9，確認教學內容可閱讀，練習按鈕顯示「練習題庫建置中」。
+  5. 切換翰林版後確認分數乘法、分數除法仍可練習，學習紀錄不與康軒單元混用。
+  6. 家長頁輸入 8888 後確認康軒版完整列出第1～9單元與複習單元，未開放題庫者顯示「題庫建置中／教學可用」。
+
+================================================================================

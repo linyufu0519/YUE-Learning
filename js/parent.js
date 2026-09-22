@@ -27,15 +27,14 @@ function render() {
   const streak = getStreak();
   const wrongBook = getWrongBook(version);
   const rewards = getRewardSummary();
-  const activeUnits = UNITS.filter((u) => isPracticeAvailable(version, u.id));
-
   let totalAttempts = 0;
   let latestDate = null;
 
   const tbody = document.getElementById("unit-table-body");
   tbody.innerHTML = "";
 
-  for (const unit of activeUnits) {
+  for (const unit of UNITS) {
+    const practiceReady = isPracticeAvailable(version, unit.id);
     const summary = getUnitSummary(unit.id, getAvailableQuestionCount(version, unit.id), version);
     totalAttempts += summary.attempts;
     if (summary.lastDate && (!latestDate || summary.lastDate > latestDate)) {
@@ -45,9 +44,9 @@ function render() {
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>${unit.icon} ${unit.title}</td>
-      <td>${summary.attempts}</td>
-      <td>${summary.attempts === 0 ? "—" : `${summary.accuracy}%`}</td>
-      <td>${summary.progress}%</td>
+      <td>${practiceReady ? summary.attempts : "題庫建置中"}</td>
+      <td>${practiceReady && summary.attempts > 0 ? `${summary.accuracy}%` : "—"}</td>
+      <td>${practiceReady ? `${summary.progress}%` : "教學可用"}</td>
       <td>${summary.lastDate || "尚未開始"}</td>
     `;
     tbody.appendChild(row);

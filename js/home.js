@@ -95,11 +95,11 @@ function renderUnitGrid() {
     const summary = practiceAvailable ? getUnitSummary(unit.id, total, version) : null;
 
     const card = document.createElement("div");
-    card.className = `unit-card ${practiceAvailable ? "available" : "locked"}`;
+    card.className = `unit-card ${practiceAvailable ? "available" : "lesson-only"}`;
 
     let badge = "";
     if (!practiceAvailable) {
-      badge = `<span class="badge locked">${unit.available ? "題庫建置中" : "敬請期待"}</span>`;
+      badge = `<span class="badge pending">題庫建置中</span>`;
     } else if (summary.attempts === 0) {
       badge = `<span class="badge new">可挑戰</span>`;
     } else if (summary.accuracy >= 80) {
@@ -110,7 +110,7 @@ function renderUnitGrid() {
       ${badge}
       <div class="unit-icon">${unit.icon}</div>
       <h3>${unit.title}</h3>
-      <div class="unit-meta">${unit.semester}${practiceAvailable ? ` · 動態題庫 ${total} 題+` : " · 基礎教學已開放"}</div>
+      <div class="unit-meta">${unit.semester}${practiceAvailable ? ` · 動態題庫 ${total} 題+` : " · 教學模式已開放"}</div>
       <p class="unit-desc">${unit.description}</p>
       ${
         practiceAvailable

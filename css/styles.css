@@ -299,6 +299,11 @@ a {
   color: #fff;
 }
 
+.badge.pending {
+  background: #fff3cd;
+  color: #8a5a00;
+}
+
 .badge.done {
   background: var(--color-success);
   color: #fff;
@@ -309,8 +314,8 @@ a {
   color: #fff;
 }
 
-.unit-card.locked {
-  opacity: 0.65;
+.unit-card.lesson-only {
+  border-style: dashed;
 }
 
 .unit-actions {

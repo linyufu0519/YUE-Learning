@@ -15,6 +15,7 @@ import {
   getAvailableQuestionCount,
   getQuestionBank,
   getLessonForVersion,
+  resolveUnit,
 } from "../js/curriculum.js";
 import { normalizeLearningState, defaultLearningState } from "../js/state-shape.js";
 
@@ -55,6 +56,18 @@ test("getUnitByVersion 可查詢單一單元", () => {
   assert.equal(getUnitByVersion("kangxuan", "not-exist"), undefined);
 });
 
+test("康軒版第1單元「最大公因數與最小公倍數」具備可練習題庫", () => {
+  assert.equal(getPracticeBankKey("kangxuan", "kx-unit1"), "kx-gcf-lcm");
+  assert.equal(isPracticeAvailable("kangxuan", "kx-unit1"), true);
+  assert.ok(getAvailableQuestionCount("kangxuan", "kx-unit1") >= 30);
+  const bank = getQuestionBank("kangxuan", "kx-unit1");
+  assert.ok(bank.some((q) => q.prompt.includes("質數") || q.prompt.includes("合數")));
+  assert.ok(bank.some((q) => q.prompt.includes("質因數分解")));
+  assert.ok(bank.some((q) => q.prompt.includes("最大公因數")));
+  assert.ok(bank.some((q) => q.prompt.includes("最小公倍數")));
+  assert.ok(["easy", "medium", "hard"].every((difficulty) => bank.some((q) => q.difficulty === difficulty)));
+});
+
 test("康軒版第2單元「分數除法」沿用既有 fraction-divide 動態題庫", () => {
   assert.equal(getPracticeBankKey("kangxuan", "kx-unit2"), "fraction-divide");
   assert.equal(isPracticeAvailable("kangxuan", "kx-unit2"), true);
@@ -69,11 +82,12 @@ test("康軒版第2單元「分數除法」沿用既有 fraction-divide 動態�
   );
 });
 
-test("康軒版尚未開放題庫的單元回傳空題庫且練習不可用", () => {
-  assert.equal(getPracticeBankKey("kangxuan", "kx-unit1"), null);
-  assert.equal(isPracticeAvailable("kangxuan", "kx-unit1"), false);
-  assert.equal(getAvailableQuestionCount("kangxuan", "kx-unit1"), 0);
-  assert.deepEqual(getQuestionBank("kangxuan", "kx-unit1"), []);
+test("康軒版尚未開放題庫的單元仍可教學，但練習不可用", () => {
+  assert.equal(getPracticeBankKey("kangxuan", "kx-unit3"), null);
+  assert.equal(isPracticeAvailable("kangxuan", "kx-unit3"), false);
+  assert.equal(getAvailableQuestionCount("kangxuan", "kx-unit3"), 0);
+  assert.deepEqual(getQuestionBank("kangxuan", "kx-unit3"), []);
+  assert.ok(getLessonForVersion("kangxuan", "kx-unit3"));
 });
 
 test("getLessonForVersion：翰林版直接查 lessons.js，康軒版單元2沿用翰林分數除法教學", () => {
@@ -83,13 +97,27 @@ test("getLessonForVersion：翰林版直接查 lessons.js，康軒版單元2沿�
 });
 
 test("getLessonForVersion：康軒版其他單元有可閱讀的基礎教學（非敬請期待）", () => {
-  for (const unit of getUnitsForVersion("kangxuan")) {
+  for (const unit of getUnitsForVersion("kangxuan").filter((u) => /^kx-unit[1-9]$/.test(u.id))) {
     if (unit.id === "kx-unit2") continue;
     const lesson = getLessonForVersion("kangxuan", unit.id);
     assert.ok(lesson, `${unit.id} 缺少教學內容`);
     assert.ok(lesson.intro && lesson.intro.length > 0);
     assert.ok(lesson.examples && lesson.examples.length >= 1);
   }
+});
+
+test("resolveUnit：康軒 kx-* 單元不會被誤讀成翰林單元", () => {
+  const kangxuanUnit1 = resolveUnit("kx-unit1", "hanlin");
+  assert.equal(kangxuanUnit1.version, "kangxuan");
+  assert.equal(kangxuanUnit1.unit.title, "第1單元 最大公因數與最小公倍數");
+
+  const kangxuanUnit9 = resolveUnit("kx-unit9", "hanlin");
+  assert.equal(kangxuanUnit9.version, "kangxuan");
+  assert.equal(kangxuanUnit9.unit.title, "第9單元 放大圖、縮圖與比例尺");
+
+  const hanlinUnit = resolveUnit("fraction-divide", "kangxuan");
+  assert.equal(hanlinUnit.version, "hanlin");
+  assert.equal(hanlinUnit.unit.title, "分數的除法");
 });
 
 test("defaultLearningState 預設版本為康軒版，並具備兩個版本的進度桶", () => {

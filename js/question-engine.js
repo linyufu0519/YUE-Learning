@@ -1,6 +1,6 @@
 // js/question-engine.js
 // 動態題目產生與抽題邏輯：每次練習隨機抽題，並支援難度與智慧練習。
-import { simplifyFraction } from "./logic.js";
+import { gcd, simplifyFraction } from "./logic.js";
 
 export const PRACTICE_QUESTION_COUNT = 10;
 export const DIFFICULTIES = ["easy", "medium", "hard"];
@@ -88,6 +88,128 @@ function buildQuestion({ id, unitId, difficulty, type, prompt, answer, hint, exp
     ]);
   }
   return question;
+}
+
+function buildTextChoiceQuestion({ id, unitId, difficulty, prompt, answer, hint, explanation, choices }) {
+  return {
+    id,
+    unitId,
+    difficulty,
+    type: "choice",
+    prompt,
+    answer,
+    hint,
+    explanation,
+    choices,
+  };
+}
+
+function lcm(a, b) {
+  return Math.abs(a * b) / gcd(a, b);
+}
+
+function isPrime(n) {
+  if (n < 2) return false;
+  for (let i = 2; i * i <= n; i += 1) {
+    if (n % i === 0) return false;
+  }
+  return true;
+}
+
+function primeFactors(n) {
+  const factors = [];
+  let value = n;
+  for (let d = 2; d * d <= value; d += 1) {
+    while (value % d === 0) {
+      factors.push(d);
+      value /= d;
+    }
+  }
+  if (value > 1) factors.push(value);
+  return factors;
+}
+
+function factorText(n) {
+  return primeFactors(n).join("×");
+}
+
+function makePrimeQuestion(n, difficulty, index) {
+  const answer = isPrime(n) ? "質數" : "合數";
+  return buildTextChoiceQuestion({
+    id: `kx1-prime-${difficulty}-${index}-${n}`,
+    unitId: "kx-gcf-lcm",
+    difficulty,
+    prompt: `${n} 是質數還是合數？`,
+    answer,
+    choices: ["質數", "合數"],
+    hint: "只有 1 和自己兩個因數的是質數；除了 1 和自己以外還有其他因數的是合數。",
+    explanation: isPrime(n)
+      ? `${n} 只有 1 和 ${n} 兩個因數，所以是質數。`
+      : `${n} 除了 1 和 ${n}，還有其他因數，所以是合數。`,
+  });
+}
+
+function makeFactorQuestion(n, difficulty, index) {
+  const answer = factorText(n);
+  const options = uniqueTextChoices(answer, [
+    String(n),
+    `${primeFactors(n)[0]}×${Math.floor(n / primeFactors(n)[0])}`,
+    primeFactors(n).slice().reverse().join("×"),
+    `${answer}×1`,
+  ]);
+  return buildTextChoiceQuestion({
+    id: `kx1-factor-${difficulty}-${index}-${n}`,
+    unitId: "kx-gcf-lcm",
+    difficulty,
+    prompt: `${n} 的質因數分解是哪一個？`,
+    answer,
+    choices: options,
+    hint: "把一個合數拆成全部都是質數相乘的形式。",
+    explanation: `${n} = ${answer}，每一個因數都是質數。`,
+  });
+}
+
+function uniqueTextChoices(answer, seeds) {
+  const choices = [answer];
+  const seen = new Set(choices);
+  for (const seed of seeds) {
+    if (seed && !seen.has(seed)) {
+      seen.add(seed);
+      choices.push(seed);
+    }
+    if (choices.length >= 4) break;
+  }
+  while (choices.length < 4) {
+    const fallback = `選項${choices.length + 1}`;
+    if (!seen.has(fallback)) choices.push(fallback);
+  }
+  return choices;
+}
+
+function makeGcfLcmQuestion(kind, a, b, difficulty, index, type = "input") {
+  const answerValue = kind === "gcf" ? gcd(a, b) : lcm(a, b);
+  const label = kind === "gcf" ? "最大公因數" : "最小公倍數";
+  const seeds =
+    kind === "gcf"
+      ? [frac(Math.min(a, b)), frac(answerValue + 1), frac(Math.max(1, answerValue - 1))]
+      : [frac(Math.max(a, b)), frac(answerValue + Math.min(a, b)), frac(Math.max(1, answerValue - Math.min(a, b)))];
+  return buildQuestion({
+    id: `kx1-${kind}-${difficulty}-${index}-${a}_${b}`,
+    unitId: "kx-gcf-lcm",
+    difficulty,
+    type,
+    prompt: `${a} 和 ${b} 的${label}是多少？`,
+    answer: frac(answerValue),
+    hint:
+      kind === "gcf"
+        ? "先列出兩數共同的因數，再找最大的那一個。"
+        : "先列出兩數共同的倍數，再找最小的那一個。",
+    explanation:
+      kind === "gcf"
+        ? `${a} 和 ${b} 的共同因數中最大的是 ${answerValue}，所以最大公因數是 ${answerValue}。`
+        : `${a} 和 ${b} 的共同倍數中最小的是 ${answerValue}，所以最小公倍數是 ${answerValue}。`,
+    choices: type === "choice" ? uniqueWrongChoices(String(answerValue), seeds) : null,
+  });
 }
 
 function makeMultiplyQuestion(a, b, difficulty, index, type = "input") {
@@ -234,7 +356,59 @@ function divisionBank() {
   ];
 }
 
+function gcfLcmBank() {
+  const easyPrime = [2, 4, 5, 9, 11, 15];
+  const easyGcf = [
+    [12, 18],
+    [8, 12],
+    [10, 15],
+  ];
+  const easyLcm = [
+    [3, 4],
+    [4, 6],
+    [5, 10],
+  ];
+  const mediumFactors = [18, 24, 30, 36, 42, 45];
+  const mediumGcf = [
+    [16, 24],
+    [21, 35],
+    [28, 42],
+  ];
+  const mediumLcm = [
+    [6, 8],
+    [9, 12],
+    [10, 15],
+  ];
+  const hardGcf = [
+    [48, 72],
+    [54, 90],
+    [84, 126],
+    [96, 144],
+    [75, 125],
+    [108, 180],
+  ];
+  const hardLcm = [
+    [12, 18],
+    [14, 21],
+    [16, 24],
+    [18, 30],
+    [20, 32],
+    [24, 36],
+  ];
+  return [
+    ...easyPrime.map((n, i) => makePrimeQuestion(n, "easy", i)),
+    ...easyGcf.map((p, i) => makeGcfLcmQuestion("gcf", p[0], p[1], "easy", i, i % 2 ? "choice" : "input")),
+    ...easyLcm.map((p, i) => makeGcfLcmQuestion("lcm", p[0], p[1], "easy", i, i % 2 ? "input" : "choice")),
+    ...mediumFactors.map((n, i) => makeFactorQuestion(n, "medium", i)),
+    ...mediumGcf.map((p, i) => makeGcfLcmQuestion("gcf", p[0], p[1], "medium", i, i % 2 ? "input" : "choice")),
+    ...mediumLcm.map((p, i) => makeGcfLcmQuestion("lcm", p[0], p[1], "medium", i, i % 2 ? "choice" : "input")),
+    ...hardGcf.map((p, i) => makeGcfLcmQuestion("gcf", p[0], p[1], "hard", i, "input")),
+    ...hardLcm.map((p, i) => makeGcfLcmQuestion("lcm", p[0], p[1], "hard", i, "input")),
+  ];
+}
+
 export function getQuestionBank(unitId) {
+  if (unitId === "kx-gcf-lcm") return gcfLcmBank();
   if (unitId === "fraction-multiply") return multiplicationBank();
   if (unitId === "fraction-divide") return divisionBank();
   return [];
