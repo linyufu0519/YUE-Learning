@@ -7,6 +7,7 @@ import {
   getWrongBook,
   getCurrentVersion,
   resetState,
+  confirmLevelReward,
 } from "./storage.js";
 import { verifyParentPassword } from "./parent-auth.js";
 import { describeSyncStatus } from "./sync-logic.js";
@@ -77,6 +78,8 @@ function render() {
     ? rewards.badges.map((badge) => `<span class="mini-badge">🏅 ${escapeHtml(badge)}</span>`).join("")
     : `<span class="empty-hint">尚未取得徽章。</span>`;
 
+  renderLevelRewards(rewards.levelRewards);
+
   const wrongArea = document.getElementById("wrong-book-area");
   if (wrongBook.length === 0) {
     wrongArea.innerHTML = `<div class="empty-hint">目前沒有錯題，繼續保持！</div>`;
@@ -98,6 +101,34 @@ function render() {
       })
       .join("");
   }
+}
+
+function renderLevelRewards(levelRewards) {
+  document.getElementById("p-level-reward-note").textContent = levelRewards.maxMilestoneNote;
+  document.getElementById("p-level-reward-unlocked").textContent = levelRewards.totalUnlockedAmount;
+  document.getElementById("p-level-reward-confirmed").textContent = levelRewards.totalConfirmedAmount;
+  document.getElementById("p-level-reward-list").innerHTML = levelRewards.milestones
+    .map((m) => {
+      const state = m.confirmed ? "confirmed" : m.unlocked ? "unlocked" : "locked";
+      let status;
+      if (m.confirmed) {
+        status = `<span>✅ 已確認發放</span>`;
+      } else if (m.unlocked) {
+        status = `<button class="btn small" data-confirm-level="${m.level}">確認領取</button>`;
+      } else {
+        status = `<span>🔒 尚未解鎖</span>`;
+      }
+      return `
+        <div class="level-reward-item ${state}">
+          <div>
+            <strong>Lv.${m.level}</strong>
+            <div class="unit-meta">零用錢 ${m.amount} 元</div>
+          </div>
+          ${status}
+        </div>
+      `;
+    })
+    .join("");
 }
 
 function escapeHtml(str) {
@@ -139,6 +170,21 @@ document.getElementById("reset-btn").addEventListener("click", () => {
     resetState();
     render();
   }
+});
+
+// 等級獎品「確認領取」按鈕採事件委派，因為清單內容是動態產生的。
+// 一律先檢查 isParentAuthorized，未通過家長密碼授權時完全不執行任何確認動作，
+// 確保小朋友無法自行標記獎品已領取。
+document.getElementById("p-level-reward-list").addEventListener("click", (event) => {
+  const btn = event.target.closest("[data-confirm-level]");
+  if (!btn || !isParentAuthorized) return;
+  const level = Number(btn.dataset.confirmLevel);
+  if (!confirm(`確定要標記 Lv.${level} 獎品為「已確認發放」嗎？此動作無法復原。`)) return;
+  const result = confirmLevelReward(level);
+  if (!result.ok) {
+    alert(result.message);
+  }
+  render();
 });
 
 passwordInput.focus();

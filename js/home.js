@@ -157,6 +157,27 @@ function renderRewards() {
       `
     )
     .join("");
+
+  renderLevelRewards(rewards.levelRewards);
+}
+
+function renderLevelRewards(levelRewards) {
+  document.getElementById("level-reward-note").textContent = levelRewards.maxMilestoneNote;
+  document.getElementById("level-reward-list").innerHTML = levelRewards.milestones
+    .map((m) => {
+      const state = m.confirmed ? "confirmed" : m.unlocked ? "unlocked" : "locked";
+      const status = m.confirmed ? "✅ 已領取" : m.unlocked ? "🎁 已解鎖，待家長確認" : "🔒 尚未解鎖";
+      return `
+        <div class="level-reward-item ${state}">
+          <div>
+            <strong>Lv.${m.level}</strong>
+            <div class="unit-meta">零用錢 ${m.amount} 元</div>
+          </div>
+          <span>${status}</span>
+        </div>
+      `;
+    })
+    .join("");
 }
 
 renderVersionHeader();

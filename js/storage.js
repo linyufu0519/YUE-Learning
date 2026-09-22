@@ -10,8 +10,11 @@ import {
 import {
   applyAnswerReward,
   applyLessonReward,
+  applyPracticeSessionReward,
+  confirmLevelRewardMilestone,
   evaluateMissions,
   getLevelInfo,
+  getLevelRewardsSummary,
   hasReadLessonBefore,
   normalizeRewards,
 } from "./rewards.js";
@@ -213,10 +216,38 @@ export function recordLessonRead(unitId) {
   return { ...state, lessonMessage: result.message, firstReadToday: result.firstReadToday };
 }
 
+/**
+ * 一次完整練習（練習頁的一個 session）結束時呼叫，記錄本次是否全部答對，
+ * 供「全部答對或修正錯題」每日任務判定。與答對題目時逐題累加 XP 是分開的，
+ * 只在整個 session 完成時呼叫一次，不會重複發獎。
+ */
+export function recordPracticeSessionResult(allCorrect) {
+  const state = loadState();
+  const result = applyPracticeSessionReward(state.rewards, { allCorrect });
+  state.rewards = result.rewards;
+  saveState(state);
+  return { ...state, sessionMessage: result.message };
+}
+
 /** 查詢某單元的教學是否曾經完成過（不限今天），供教學頁重新載入時顯示已完成狀態。 */
 export function isLessonCompletedBefore(unitId) {
   const state = loadState();
   return hasReadLessonBefore(state.rewards, unitId);
+}
+
+/**
+ * 家長頁確認「實際發放」某個等級獎品里程碑。呼叫端（parent.js）必須先確認已通過
+ * 家長密碼授權，才能呼叫這個函式；本函式本身只負責「里程碑是否已解鎖、是否已確認過」
+ * 的規則判斷，不會重複發放同一個里程碑。
+ */
+export function confirmLevelReward(level) {
+  const state = loadState();
+  const result = confirmLevelRewardMilestone(state.rewards, level);
+  if (result.ok) {
+    state.rewards = result.rewards;
+    saveState(state);
+  }
+  return result;
 }
 
 export function getRewardSummary() {
@@ -225,5 +256,6 @@ export function getRewardSummary() {
     ...rewards,
     levelInfo: getLevelInfo(rewards.xp),
     missions: evaluateMissions(rewards),
+    levelRewards: getLevelRewardsSummary(rewards),
   };
 }

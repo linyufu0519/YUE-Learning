@@ -5,6 +5,7 @@ import {
   getRecentQuestionIds,
   getUnitSummary,
   recordAnswer,
+  recordPracticeSessionResult,
 } from "./storage.js";
 import {
   DIFFICULTY_LABELS,
@@ -202,6 +203,8 @@ function showSummary() {
   progressBar.style.width = "100%";
 
   const accuracy = Math.round((sessionCorrect / questions.length) * 100);
+  const allCorrect = questions.length > 0 && sessionCorrect === questions.length;
+  const sessionResult = recordPracticeSessionResult(allCorrect);
   const summary = getUnitSummary(unit.id, getAvailableQuestionCount(version, unit.id), version);
   const emoji = accuracy >= 80 ? "🏆" : accuracy >= 50 ? "👍" : "💪";
 
@@ -222,6 +225,7 @@ function showSummary() {
         <div class="stat-label">單元累計完成度</div>
       </div>
     </div>
+    ${sessionResult.sessionMessage ? `<div class="lesson-message">${escapeHtml(sessionResult.sessionMessage)}</div>` : ""}
     <div class="practice-footer" style="justify-content:center;">
       <button class="btn secondary" id="retry-btn">再練習一次</button>
       <a class="btn secondary" href="lesson.html?unit=${unit.id}">回教學複習</a>

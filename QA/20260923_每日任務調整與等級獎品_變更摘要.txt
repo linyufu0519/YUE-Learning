@@ -1,0 +1,125 @@
+【變更摘要】每日任務調整（目標與完成條件）＋新增等級獎品（零用錢里程碑）制度
+日期：2026-09-23
+專案：linyufu0519/YUE-Learning（林小玥六年級數學學習站）
+
+【使用者需求】（跨 session 訊息，兩批需求合併於同一次部署）
+1. 每日任務第一項「完成 5 題練習」→ 改為「完成 10 題練習」，獎勵不變（30 XP＋1 星）。
+2. 每日任務第三項「修正 1 題錯題」→ 改為「全部答對或修正錯題」：今天只要有一次練習全部答對，
+   或既有「修正錯題」流程，兩者任一即可完成，獎勵相同（25 XP＋1 星），同一天不重複發獎。
+3. 新增等級獎品制度：每 10 級一個里程碑（Lv.10～100），10～40 級、60～90 級各為零用錢 100 元，
+   Lv.50、Lv.100 為零用錢 500 元；100 級以上不新增里程碑，顯示「目前最高獎勵里程碑為 100 級」。
+4. 首頁與家長頁皆需顯示等級獎品清單（已解鎖／待確認／未解鎖、對應金額）；家長頁另需可「確認領取」
+   （代表零用錢已實際發放），且此操作必須在通過 8888 家長密碼後才能執行，小朋友端不可操作。
+5. 達成新里程碑時要有明確鼓勵提示，但不可自動宣稱「已領取現金」。
+6. localStorage／Firebase 相容，舊資料需自動補齊欄位；里程碑解鎖／確認狀態合併時不可遺失。
+7. 補齊純邏輯測試、執行全部測試／語法檢查／smoke test，更新 README。
+
+【根因與設計】
+- 任務目標與完成條件的變更集中在 `js/rewards.js` 的 `DAILY_MISSIONS` 定義與 `evaluateMissions()`，
+  `js/home.js`／`js/parent.js` 皆透過 `rewards.missions` 泛用渲染 `title`／`description`／`value/target`，
+  因此不需要改動這兩個檔案即可反映新的任務內容，改動風險低、影響面集中。
+- 「全部答對或修正錯題」需要一個新的「本次練習是否全對」概念，這在 `practice.js` 已經在本機追蹤
+  （`sessionCorrect`），但 `rewards.js`／`storage.js` 原本沒有「一次 session 結束」的事件，因此新增
+  `applyPracticeSessionReward(rewards, {allCorrect}, date)` 與 `storage.js` 的
+  `recordPracticeSessionResult(allCorrect)`，只在 `practice.js` 的 `showSummary()`（每個 session 結束時）
+  呼叫一次，避免與逐題的 `applyAnswerReward` 混淆。
+- `evaluateMissions()` 對 `fix-wrong` 任務的 value 改為
+  `daily.wrongFixedCount + (daily.perfectSessionToday ? 1 : 0)`，任一路徑達成 target=1 即算完成；
+  `completeMissions()` 沿用既有的 `completedMissionIds` 防止同一天重複發獎，因此「全對」與「修正錯題」
+  同一天都觸發也只會發一次獎勵。
+- 等級獎品的「解鎖」狀態完全由目前 XP／等級即時計算（`getLevelInfo(xp).level >= milestone`），
+  不需要另外持久化；「已確認發放」才需要持久化狀態（`rewards.levelRewards.confirmedMilestones`），
+  因為這是家長的一次性動作紀錄，且必須避免重複發放。另外新增 `notifiedMilestones` 記錄「是否已經
+  顯示過這個里程碑的恭喜訊息」，避免玩家每次答題都重複看到同一句鼓勵文字。
+- 家長端「確認領取」的授權完全比照既有 `js/parent.js` 對「清除所有學習紀錄」按鈕的作法：
+  UI 層先檢查模組內的 `isParentAuthorized`（只有在輸入正確的 8888 密碼後才會被設為 true），
+  未授權時點擊「確認領取」按鈕不會呼叫任何 storage 函式；`js/storage.js` 的
+  `confirmLevelReward(level)` 本身另外用「里程碑是否已解鎖」「是否已確認過」把關，屬於雙層防呆。
+
+【修改檔案】
+1. js/rewards.js
+   - DAILY_MISSIONS：`practice-5` 任務 target 5→10、標題/說明文字更新；`fix-wrong` 任務標題/說明
+     文字更新為「全部答對或修正錯題」（id 維持不變，因 `completedMissionIds` 每天都會重置，無長期
+     相容疑慮）。
+   - `createDailyProgress()` 新增 `perfectSessionToday` 欄位；`normalizeDaily()` 強制轉為布林值。
+   - `evaluateMissions()`：`fix-wrong` 的 value 改為「修正錯題數 + 是否曾全對(0或1)」。
+   - 新增 `applyPracticeSessionReward(rewards, {allCorrect}, date)`：一次 session 結束時呼叫一次。
+   - 新增 `LEVEL_MILESTONES`、`MAX_LEVEL_MILESTONE`、`getMilestoneAmount(level)`、
+     `getLevelRewardsSummary(rewards)`（解鎖/確認狀態、累計金額）、
+     `confirmLevelRewardMilestone(rewards, level)`（家長確認領取的純邏輯規則）、
+     內部 `checkNewLevelMilestones()`／`buildMilestoneMessage()`（新里程碑鼓勵訊息，僅提示一次）。
+   - `defaultRewards()`／`normalizeRewards()` 補上 `levelRewards: {confirmedMilestones, notifiedMilestones}`
+     欄位與正規化邏輯，確保舊資料（沒有這個欄位）讀取時自動補齊為空陣列，不會噴錯。
+   - `applyAnswerReward`／`applyPracticeSessionReward`／`applyLessonReward` 都會呼叫
+     `checkNewLevelMilestones()` 並在回傳訊息後方附加里程碑鼓勵文字（若有新解鎖）。
+2. js/storage.js
+   - 新增 `recordPracticeSessionResult(allCorrect)`：包裝 `applyPracticeSessionReward`，於練習
+     session 結束時呼叫一次。
+   - 新增 `confirmLevelReward(level)`：包裝 `confirmLevelRewardMilestone`，供 `parent.js` 呼叫
+     （呼叫端必須自行確認已通過家長密碼授權）。
+   - `getRewardSummary()` 回傳值新增 `levelRewards: getLevelRewardsSummary(rewards)`。
+3. js/practice.js
+   - `showSummary()`：session 結束時計算 `allCorrect`（本次是否全部答對），呼叫
+     `recordPracticeSessionResult(allCorrect)` 一次，並在結算畫面顯示 `sessionMessage`（若有）。
+4. js/sync-logic.js
+   - `mergeDaily()` 新增 `perfectSessionToday` 布林值 OR 合併。
+   - `mergeRewards()` 新增 `levelRewards.confirmedMilestones`／`notifiedMilestones` 聯集合併，
+     避免任一裝置已確認的獎品紀錄或已提示過的里程碑在登入合併時被遺失。
+5. js/home.js
+   - 新增 `renderLevelRewards()`：渲染首頁等級獎品清單（已解鎖／待確認／未解鎖狀態＋金額）。
+6. js/parent.js
+   - 匯入 `confirmLevelReward`；新增 `renderLevelRewards()`（含「確認領取」按鈕、累計已解鎖／
+     已確認金額）；新增事件委派監聽 `#p-level-reward-list` 的 `data-confirm-level` 按鈕點擊，
+     一律先檢查 `isParentAuthorized` 才會呼叫 `confirmLevelReward()`，並要求二次確認（`confirm()`）。
+7. index.html
+   - 「每日任務與獎勵」區塊新增「🎁 等級獎品」卡片（`#level-reward-note`、`#level-reward-list`）。
+8. parent.html
+   - 「每日任務與徽章」區塊下新增「🎁 等級獎品」卡片，含累計已解鎖／已確認金額與獎品清單容器。
+9. css/styles.css
+   - 新增 `.level-reward-list`、`.level-reward-item`（`.locked`／`.unlocked`／`.confirmed` 三種狀態
+     樣式）、`.btn.small`。
+10. 測試新增／更新：
+    - tests/rewards.test.js：更新「完成 5 題」相關測試為 10 題／target 斷言，新增「未滿 10 題不算完成」
+      測試；新增 4 項 `applyPracticeSessionReward` 測試（全對可完成任務、修正錯題路徑仍可完成、
+      未全對不提早發獎、同日不重複發獎）；新增 8 項等級獎品測試（金額規則、未達門檻全鎖、剛好達
+      10 級解鎖、超過 100 級全解鎖且顯示最高里程碑提示、舊資料無 levelRewards 欄位可自動補齊、
+      確認領取成功／未解鎖無法確認／同一里程碑不能重複確認、新里程碑鼓勵訊息只出現一次）。
+    - tests/storage.test.js：新增 `recordPracticeSessionResult` 3 項測試、`confirmLevelReward` 3 項測試
+      （已解鎖可確認、未解鎖無法確認、同一里程碑不能重複確認）。
+    - tests/sync-logic.test.js：新增等級獎品合併測試（兩端各自確認/提示不同里程碑時，合併後聯集
+      不遺失任一邊）。
+11. README.md
+    - 更新首頁功能說明（每日任務新文字）、新增「等級獎品」功能段落、家長頁段落補充等級獎品清單
+      與確認領取說明、雲端同步段落補充等級獎品合併說明、測試段落更新為 100 項並列出新增測試涵蓋範圍。
+12. QA/20260923_每日任務調整與等級獎品_變更摘要.txt（本檔案）。
+
+【相容性確認】
+- `js/home.js`、`js/parent.js` 既有的每日任務渲染邏輯（`mission.title`／`mission.description`／
+  `Math.min(value,target)/target`）完全沒有變動，僅任務內容資料改變，UI 自動反映新文字與新目標。
+- 舊版 localStorage／Firebase 資料若沒有 `perfectSessionToday`、`levelRewards` 欄位，
+  `normalizeDaily()`／`normalizeRewards()` 皆會自動補上預設值（`false`／空陣列），不會拋出例外，
+  等級獎品一律視為「尚未確認、依目前等級判斷解鎖」，不會誤判也不會遺失既有 XP／星星／徽章資料。
+- 家長頁「確認領取」與既有「清除所有學習紀錄」共用同一個 `isParentAuthorized` 布林旗標與 8888
+  密碼驗證流程，未輸入或輸入錯誤密碼時，家長專區整個 `#parent-dashboard` 仍維持 `hidden`，
+  等級獎品清單與按鈕本身也不會被渲染出來，小朋友無法透過任何途徑觸發確認領取。
+- Firebase 合併邏輯新增的欄位皆採「聯集」策略（不會用其中一邊覆蓋另一邊），符合既有「不覆蓋、
+  不遺失」的合併原則。
+
+【測試結果】
+- `node --test tests/` → 100 項全數通過（新增 21 項：rewards 12 項、storage 6 項、sync-logic 1 項，
+  另原有每日任務測試調整/新增 2 項，總數由 79 → 100）。
+- `node --check` 對 `js/*.js` 全部檔案逐一語法檢查 → 全部通過。
+- 本機 HTTP smoke test（index.html、parent.html、practice.html?unit=fraction-multiply/-divide/
+  kx-unit1/kx-unit3/kx-unit4、lesson.html?unit=fraction-multiply/kx-unit1）→ 全部 200。
+- 本機 Edge headless（正確設定 .js 檔 `Content-Type: application/javascript` 才能讓瀏覽器執行
+  ES module，否則會被瀏覽器以 MIME 類型不符擋下）`--dump-dom` 驗證：
+  - `index.html`：`#level-reward-list` 顯示 10 個里程碑項目，金額依序為
+    100/100/100/100/500/100/100/100/100/500（對應 Lv.10~100），`#level-reward-note` 顯示
+    「目前最高獎勵里程碑為 100 級」。
+  - `parent.html`：未輸入密碼時 `#parent-dashboard` 維持 `hidden`，等級獎品區塊標籤與容器存在，
+    確認密碼保護機制未被破壞。
+
+【後續操作】
+- commit 並 push 到 origin main（沿用既有 Basic Auth workaround，非 force push）。
+- 等待 GitHub Pages built 後，於線上網址驗證首頁每日任務文字（完成 10 題練習／全部答對或修正錯題）
+  與等級獎品清單顯示，並確認家長頁「確認領取」按鈕需通過 8888 密碼才會出現。

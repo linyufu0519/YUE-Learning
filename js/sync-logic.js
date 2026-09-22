@@ -74,6 +74,7 @@ function mergeDaily(localDaily, cloudDaily, today) {
       practiceCount: Math.max(a.practiceCount || 0, b.practiceCount || 0),
       lessonReadCount: Math.max(a.lessonReadCount || 0, b.lessonReadCount || 0),
       wrongFixedCount: Math.max(a.wrongFixedCount || 0, b.wrongFixedCount || 0),
+      perfectSessionToday: Boolean(a.perfectSessionToday) || Boolean(b.perfectSessionToday),
       completedMissionIds: Array.from(
         new Set([...(a.completedMissionIds || []), ...(b.completedMissionIds || [])])
       ),
@@ -119,6 +120,16 @@ function mergeRewards(localRewards, cloudRewards, today) {
     lessonReads,
     recentQuestionIds,
     daily: mergeDaily(a.daily, b.daily, today),
+    levelRewards: {
+      // 已確認領取／已提示過的里程碑只會越來越多，合併時採聯集，避免任一端遺失紀錄
+      // 或造成家長重複確認、小朋友重複看到同一則恭喜訊息。
+      confirmedMilestones: Array.from(
+        new Set([...(a.levelRewards?.confirmedMilestones || []), ...(b.levelRewards?.confirmedMilestones || [])])
+      ),
+      notifiedMilestones: Array.from(
+        new Set([...(a.levelRewards?.notifiedMilestones || []), ...(b.levelRewards?.notifiedMilestones || [])])
+      ),
+    },
   };
 }
 

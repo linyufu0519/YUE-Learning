@@ -285,3 +285,44 @@ test("mergeState：今天的每日任務進度合併採較大值與任務聯集"
     ["practice-5", "read-lesson"]
   );
 });
+
+test("mergeState：等級獎品的已確認／已提示里程碑合併採聯集，不遺失任一裝置的紀錄", () => {
+  const today = "2026-04-01";
+  const local = {
+    version: "kangxuan",
+    streak: { count: 1, lastDate: today },
+    progress: { kangxuan: progressWith(), hanlin: progressWith() },
+    rewards: {
+      xp: 1080,
+      stars: 0,
+      badges: [],
+      lessonReads: {},
+      recentQuestionIds: {},
+      daily: { date: today, practiceCount: 0, lessonReadCount: 0, wrongFixedCount: 0, completedMissionIds: [] },
+      levelRewards: { confirmedMilestones: [10], notifiedMilestones: [10] },
+    },
+  };
+  const cloud = {
+    version: "kangxuan",
+    streak: { count: 1, lastDate: today },
+    progress: { kangxuan: progressWith(), hanlin: progressWith() },
+    rewards: {
+      xp: 1080,
+      stars: 0,
+      badges: [],
+      lessonReads: {},
+      recentQuestionIds: {},
+      daily: { date: today, practiceCount: 0, lessonReadCount: 0, wrongFixedCount: 0, completedMissionIds: [] },
+      levelRewards: { confirmedMilestones: [20], notifiedMilestones: [10, 20] },
+    },
+  };
+  const merged = mergeState(local, cloud, today);
+  assert.deepEqual(
+    [...merged.rewards.levelRewards.confirmedMilestones].sort((a, b) => a - b),
+    [10, 20]
+  );
+  assert.deepEqual(
+    [...merged.rewards.levelRewards.notifiedMilestones].sort((a, b) => a - b),
+    [10, 20]
+  );
+});

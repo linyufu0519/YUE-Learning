@@ -385,6 +385,42 @@ a {
   background: #eafaea;
 }
 
+.level-reward-list {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.level-reward-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 2px solid #eee0cf;
+  border-radius: 12px;
+  background: #fffdf9;
+}
+
+.level-reward-item.locked {
+  opacity: 0.6;
+}
+
+.level-reward-item.unlocked {
+  border-color: #f5a623;
+  background: #fff6e5;
+}
+
+.level-reward-item.confirmed {
+  border-color: var(--color-success);
+  background: #eafaea;
+}
+
+.btn.small {
+  padding: 6px 14px;
+  font-size: 0.85rem;
+}
+
 /* ---------- 練習頁 ---------- */
 .practice-header {
   display: flex;

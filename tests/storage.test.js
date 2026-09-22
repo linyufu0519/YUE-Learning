@@ -15,7 +15,7 @@ function makeMemoryStorage() {
 
 globalThis.localStorage = makeMemoryStorage();
 
-const { recordAnswer, getUnitSummary, getStreak, getWrongBook, resetState, recordLessonRead, isLessonCompletedBefore } = await import(
+const { recordAnswer, getUnitSummary, getStreak, getWrongBook, resetState, recordLessonRead, isLessonCompletedBefore, recordPracticeSessionResult, getRewardSummary, confirmLevelReward, loadState, saveState } = await import(
   "../js/storage.js"
 );
 
@@ -90,5 +90,58 @@ test("isLessonCompletedBefore 讀過教學後回傳 true（模擬重新載入頁
   assert.equal(isLessonCompletedBefore("fraction-multiply"), true);
   // 其他單元不受影響
   assert.equal(isLessonCompletedBefore("fraction-divide"), false);
+});
+
+test("recordPracticeSessionResult 全部答對可完成「全部答對或修正錯題」任務", () => {
+  resetState();
+  recordPracticeSessionResult(true);
+  const mission = getRewardSummary().missions.find((m) => m.id === "fix-wrong");
+  assert.equal(mission.done, true);
+});
+
+test("recordPracticeSessionResult 未全對時任務尚未完成", () => {
+  resetState();
+  recordPracticeSessionResult(false);
+  const mission = getRewardSummary().missions.find((m) => m.id === "fix-wrong");
+  assert.equal(mission.done, false);
+});
+
+test("recordPracticeSessionResult 同一天重複全對練習不重複發獎", () => {
+  resetState();
+  recordPracticeSessionResult(true);
+  const rewardsAfterFirst = getRewardSummary();
+  const xpAfterFirst = rewardsAfterFirst.xp;
+  const starsAfterFirst = rewardsAfterFirst.stars;
+  recordPracticeSessionResult(true);
+  const rewardsAfterSecond = getRewardSummary();
+  assert.equal(rewardsAfterSecond.xp, xpAfterFirst);
+  assert.equal(rewardsAfterSecond.stars, starsAfterFirst);
+});
+
+test("confirmLevelReward 等級已解鎖時家長可確認領取等級獎品", () => {
+  resetState();
+  const state = loadState();
+  state.rewards.xp = 9 * 120; // 直接設為 10 級，避免測試需要作答上百題
+  saveState(state);
+  const result = confirmLevelReward(10);
+  assert.equal(result.ok, true);
+  const rewards = getRewardSummary();
+  assert.equal(rewards.levelRewards.milestones.find((m) => m.level === 10).confirmed, true);
+});
+
+test("confirmLevelReward 尚未解鎖的等級無法確認領取", () => {
+  resetState();
+  const result = confirmLevelReward(10);
+  assert.equal(result.ok, false);
+});
+
+test("confirmLevelReward 同一里程碑不能重複確認領取（避免重複發放零用錢）", () => {
+  resetState();
+  const state = loadState();
+  state.rewards.xp = 9 * 120;
+  saveState(state);
+  confirmLevelReward(10);
+  const second = confirmLevelReward(10);
+  assert.equal(second.ok, false);
 });
 
