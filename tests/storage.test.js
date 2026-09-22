@@ -2,6 +2,7 @@
 // 以簡易 localStorage polyfill 測試 storage.js 的紀錄與統計邏輯。
 import test from "node:test";
 import assert from "node:assert/strict";
+import { COURSE_STAGES } from "../js/course-stages.js";
 
 function makeMemoryStorage() {
   const map = new Map();
@@ -14,6 +15,12 @@ function makeMemoryStorage() {
 }
 
 globalThis.localStorage = makeMemoryStorage();
+
+function unlockSemesterLevel10(state) {
+  state.semesterProgress.completedActions = Object.fromEntries(
+    COURSE_STAGES.slice(0, 9).map((stage) => [stage.id, ["lesson", "practice", "mastery"]])
+  );
+}
 
 const { recordAnswer, getUnitSummary, getStreak, getWrongBook, resetState, recordLessonRead, isLessonCompletedBefore, recordPracticeSessionResult, getRewardSummary, confirmLevelReward, loadState, saveState } = await import(
   "../js/storage.js"
@@ -181,7 +188,8 @@ test("recordPracticeSessionResult 同一天重複全對練習不重複發獎", (
 test("confirmLevelReward 等級已解鎖時家長可確認領取等級獎品", () => {
   resetState();
   const state = loadState();
-  state.rewards.xp = 9 * 100; // 直接設為 10 級，避免測試需要作答上百題
+  state.rewards.xp = 321; // 舊 XP 保留但不作為康軒六上獎品依據
+  unlockSemesterLevel10(state);
   saveState(state);
   const result = confirmLevelReward(10);
   assert.equal(result.ok, true);
@@ -198,7 +206,7 @@ test("confirmLevelReward 尚未解鎖的等級無法確認領取", () => {
 test("confirmLevelReward 同一里程碑不能重複確認領取（避免重複發放零用錢）", () => {
   resetState();
   const state = loadState();
-  state.rewards.xp = 9 * 100;
+  unlockSemesterLevel10(state);
   saveState(state);
   confirmLevelReward(10);
   const second = confirmLevelReward(10);

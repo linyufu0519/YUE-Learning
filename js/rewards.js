@@ -178,8 +178,8 @@ function grantBadges(rewards) {
  * unlocked：依 XP/等級即時計算，不需要另外儲存。
  * confirmed：家長在家長頁「確認領取」後才會標記，代表零用錢已經實際發放。
  */
-export function getLevelRewardsSummary(rewards) {
-  const level = getLevelInfo(rewards.xp).level;
+export function getLevelRewardsSummary(rewards, xpOverride = rewards.xp) {
+  const level = getLevelInfo(xpOverride).level;
   const levelRewards = normalizeLevelRewards(rewards.levelRewards);
   const confirmed = new Set(levelRewards.confirmedMilestones);
   const milestones = LEVEL_MILESTONES.map((milestone) => ({
@@ -230,11 +230,11 @@ function buildMilestoneMessage(newMilestones) {
  * 家長在家長頁確認「實際發放」某個等級獎品里程碑（需先通過家長密碼授權，授權判斷由呼叫端 UI 負責）。
  * 規則：里程碑必須已解鎖（等級達到）且尚未確認過，否則回傳 ok:false 並附上原因，不會重複發放。
  */
-export function confirmLevelRewardMilestone(rewards, level) {
+export function confirmLevelRewardMilestone(rewards, level, xpOverride = rewards.xp) {
   if (!LEVEL_MILESTONES.includes(level)) {
     return { rewards, ok: false, message: "找不到這個等級獎品里程碑。" };
   }
-  const currentLevel = getLevelInfo(rewards.xp).level;
+  const currentLevel = getLevelInfo(xpOverride).level;
   if (currentLevel < level) {
     return { rewards, ok: false, message: "還沒有達到這個等級，暫時無法確認領取。" };
   }

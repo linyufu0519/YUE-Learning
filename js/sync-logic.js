@@ -7,6 +7,7 @@ import { todayString } from "./logic.js";
 import { normalizeRewards, normalizeDaily } from "./rewards.js";
 import { isValidVersion, DEFAULT_VERSION } from "./curriculum.js";
 import { normalizeLearningState } from "./state-shape.js";
+import { mergeSemesterProgress } from "./stage-progress.js";
 
 function pickLaterDate(a, b) {
   if (!a) return b || null;
@@ -183,6 +184,10 @@ export function mergeState(localState, cloudState, today = todayString()) {
     streak: mergeStreak(localNorm.streak, cloudNorm.streak),
     progress: mergeProgress(localNorm.progress, cloudNorm.progress),
     rewards: mergeRewards(localState.rewards, cloudState.rewards, today),
+    semesterProgress: mergeSemesterProgress(
+      localNorm.semesterProgress,
+      cloudNorm.semesterProgress
+    ),
     updatedAt: new Date().toISOString(),
   };
 }

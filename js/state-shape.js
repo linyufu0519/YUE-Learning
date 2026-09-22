@@ -4,6 +4,7 @@
 // 也方便在 Node 環境下用假資料測試，不需要瀏覽器 localStorage。
 import { DEFAULT_VERSION, isValidVersion } from "./curriculum.js";
 import { normalizeRewards } from "./rewards.js";
+import { defaultSemesterProgress, normalizeSemesterProgress } from "./stage-progress.js";
 
 export function emptyProgress() {
   return { units: {}, wrongBook: [] };
@@ -15,6 +16,7 @@ export function defaultLearningState() {
     streak: { count: 0, lastDate: null },
     progress: { kangxuan: emptyProgress(), hanlin: emptyProgress() },
     rewards: normalizeRewards(),
+    semesterProgress: defaultSemesterProgress(),
   };
 }
 
@@ -34,6 +36,7 @@ export function normalizeLearningState(raw) {
   const state = { ...base, ...raw };
   state.version = isValidVersion(state.version) ? state.version : DEFAULT_VERSION;
   state.rewards = normalizeRewards(state.rewards);
+  state.semesterProgress = normalizeSemesterProgress(raw.semesterProgress);
   state.streak = state.streak && typeof state.streak === "object" ? state.streak : { count: 0, lastDate: null };
 
   const progress = { kangxuan: emptyProgress(), hanlin: emptyProgress() };

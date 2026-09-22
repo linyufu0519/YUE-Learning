@@ -12,6 +12,7 @@ import {
   getRecentQuestionIds,
   getUnitSummary,
   getWrongBook,
+  getSemesterProgress,
   recordAnswer,
   recordPracticeSessionResult,
 } from "./storage.js";
@@ -21,9 +22,14 @@ import {
   selectPracticeQuestions,
 } from "./question-engine.js";
 import { createWrongReviewQuestions, getWrongReviewKey } from "./wrong-review.js";
+import { getStageById } from "./course-stages.js";
+import { isStageUnlocked } from "./stage-progress.js";
+import { selectStageQuestions } from "./stage-question-engine.js";
 
 const params = new URLSearchParams(window.location.search);
-const unitId = params.get("unit");
+const stageId = params.get("stage");
+const stage = stageId ? getStageById(stageId) : null;
+const unitId = stage?.unitId || params.get("unit");
 const reviewMode = params.get("review") === "wrong";
 const resolved = resolveUnit(unitId);
 const version = reviewMode ? getCurrentVersion() : resolved.version;
@@ -48,14 +54,18 @@ let answeredCurrent = false;
 
 if (reviewMode) {
   setupWrongReview();
-} else if (!unit || !bankKey) {
+} else if (stage && !isStageUnlocked(getSemesterProgress(), stage.id)) {
+  questionArea.innerHTML = `<p>🔒 請先完成前一關，再回來挑戰本關。</p><a class="btn" href="index.html">回學習地圖</a>`;
+} else if (!unit || (!stage && !bankKey)) {
   questionArea.innerHTML = `
     <p>⚠️ 這個單元目前尚未開放練習，請先閱讀教學內容。</p>
     <a class="btn" href="index.html">回首頁</a>
   `;
 } else {
-  document.getElementById("unit-title").textContent = `${unit.icon} ${unit.title}`;
-  document.title = `${unit.title} | 林小玥六年級數學學習站`;
+  document.getElementById("unit-title").textContent = stage
+    ? `🗺️ 第 ${stage.order} 關：${stage.topic}`
+    : `${unit.icon} ${unit.title}`;
+  document.title = `${stage?.topic || unit.title} | 林小玥六年級數學學習站`;
   const subtitleEl = document.querySelector(".subtitle");
   if (subtitleEl) subtitleEl.textContent = `${getVersionLabel(version)}．國小六年級`;
   document.getElementById("ddl-difficulty").value = selectedDifficulty;
@@ -142,6 +152,21 @@ function startWrongReview(selectedKey = null) {
 }
 
 function startPractice() {
+  if (stage) {
+    const stats = getSemesterProgress().stageStats?.[stage.id];
+    questions = selectStageQuestions({
+      stageId: stage.id,
+      difficulty: selectedDifficulty === "smart" ? "medium" : selectedDifficulty,
+      count: PRACTICE_QUESTION_COUNT,
+      recentQuestionIds: stats?.recentQuestionIds || [],
+    });
+    currentIndex = 0;
+    sessionCorrect = 0;
+    questionArea.style.display = "block";
+    summaryArea.style.display = "none";
+    renderQuestion();
+    return;
+  }
   const total = getAvailableQuestionCount(version, unit.id);
   const summary = getUnitSummary(unit.id, total, version);
   questions = selectPracticeQuestions({
@@ -247,6 +272,7 @@ function handleAnswer(userAnswer, element) {
     type: q.type,
     choices: q.choices,
     hint: q.hint,
+    stageId: q.stageId || stage?.id,
     version,
   });
 
@@ -297,14 +323,23 @@ function showSummary() {
 
   const accuracy = Math.round((sessionCorrect / questions.length) * 100);
   const allCorrect = questions.length > 0 && sessionCorrect === questions.length;
-  const sessionResult = recordPracticeSessionResult(allCorrect);
+  const sessionResult = recordPracticeSessionResult(
+    allCorrect,
+    reviewMode ? null : stage?.id || null,
+    questions.length
+  );
   const emoji = accuracy >= 80 ? "🏆" : accuracy >= 50 ? "👍" : "💪";
   const summaryStat = reviewMode
     ? `<div class="stat-box">
         <div class="stat-value">${getWrongBook(version).length}</div>
         <div class="stat-label">剩餘錯題</div>
       </div>`
-    : `<div class="stat-box">
+    : stage
+      ? `<div class="stat-box">
+        <div class="stat-value">${getSemesterProgress().completedActions?.[stage.id]?.length || 0}/3</div>
+        <div class="stat-label">本關任務</div>
+      </div>`
+      : `<div class="stat-box">
         <div class="stat-value">${getUnitSummary(unit.id, getAvailableQuestionCount(version, unit.id), version).progress}%</div>
         <div class="stat-label">單元累計完成度</div>
       </div>`;
@@ -312,7 +347,9 @@ function showSummary() {
     ? `<a class="btn secondary" href="practice.html?review=wrong">繼續複習錯題</a>
        <a class="btn outline" href="index.html">回首頁</a>`
     : `<button class="btn secondary" id="retry-btn">再練習一次</button>
-       <a class="btn secondary" href="lesson.html?unit=${unit.id}">回教學複習</a>
+       <a class="btn secondary" href="${
+         stage ? `lesson.html?stage=${stage.id}` : `lesson.html?unit=${unit.id}`
+       }">回教學複習</a>
        <a class="btn outline" href="index.html">回首頁</a>
        <a class="btn" href="parent.html">查看家長進度檢視</a>`;
 

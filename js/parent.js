@@ -8,7 +8,10 @@ import {
   getCurrentVersion,
   resetState,
   confirmLevelReward,
+  getSemesterProgress,
 } from "./storage.js";
+import { COURSE_STAGES } from "./course-stages.js";
+import { getSemesterSummary } from "./stage-progress.js";
 import { verifyParentPassword } from "./parent-auth.js";
 import { describeSyncStatus } from "./sync-logic.js";
 import { initSync, onSyncStatusChange } from "./sync-manager.js";
@@ -28,6 +31,7 @@ function render() {
   const streak = getStreak();
   const wrongBook = getWrongBook(version);
   const rewards = getRewardSummary();
+  renderSemesterProgress(version);
   let totalAttempts = 0;
   let latestDate = null;
 
@@ -40,6 +44,57 @@ function render() {
     totalAttempts += summary.attempts;
     if (summary.lastDate && (!latestDate || summary.lastDate > latestDate)) {
       latestDate = summary.lastDate;
+    }
+
+    function renderSemesterProgress(version) {
+      const area = document.getElementById("semester-stage-summary");
+      const heading = area.closest("section").querySelector(".section-title");
+      if (version !== "kangxuan") {
+        area.hidden = true;
+        heading.hidden = true;
+        return;
+      }
+      area.hidden = false;
+      heading.hidden = false;
+      const progress = getSemesterProgress();
+      const summary = getSemesterSummary(progress);
+      const unitRows = summary.units
+        .map(
+          (unit) => `
+            <div class="mission-item ${unit.completedStages === unit.totalStages ? "done" : ""}">
+              <div>
+                <strong>${escapeHtml(unit.title)}</strong>
+                <div class="unit-meta">${unit.completedStages}/${unit.totalStages} 關完成</div>
+              </div>
+              <span>${unit.rewardClaimed ? `✅ ${unit.completionXp} XP 已取得` : `${unit.completionXp} XP 待解鎖`}</span>
+            </div>
+          `
+        )
+        .join("");
+      const weaknesses = COURSE_STAGES.map((stage) => {
+        const stats = progress.stageStats?.[stage.id];
+        if (!stats?.attempts) return null;
+        return { stage, accuracy: Math.round((stats.correct / stats.attempts) * 100), attempts: stats.attempts };
+      })
+        .filter(Boolean)
+        .sort((a, b) => a.accuracy - b.accuracy || b.attempts - a.attempts)
+        .slice(0, 5);
+      area.innerHTML = `
+        <div class="reward-meta">已完成 <strong>${summary.completedStages}/79</strong> 關 ・ 六上 XP <strong>${summary.xp}/9900</strong></div>
+        <p class="unit-meta">目前關卡：${summary.currentStage ? `第 ${summary.currentStage.order} 關 ${escapeHtml(summary.currentStage.topic)}` : "全部完成"}</p>
+        <div class="mission-list">${unitRows}</div>
+        <h3>需要加強的主題</h3>
+        ${
+          weaknesses.length
+            ? `<div class="mission-list">${weaknesses
+                .map(
+                  ({ stage, accuracy, attempts }) =>
+                    `<div class="mission-item"><span>${escapeHtml(stage.topic)}</span><span>${accuracy}%（${attempts} 題）</span></div>`
+                )
+                .join("")}</div>`
+            : `<div class="empty-hint">完成關卡練習後，這裡會依正確率列出可加強的主題。</div>`
+        }
+      `;
     }
 
     const row = document.createElement("tr");
@@ -60,7 +115,17 @@ function render() {
   document.getElementById("p-xp").textContent = rewards.xp;
   document.getElementById("p-title").textContent = rewards.levelInfo.title;
   document.getElementById("p-level").textContent = rewards.levelInfo.level;
-  document.getElementById("p-mission-list").innerHTML = rewards.missions
+  const semesterActions = rewards.semester.currentStage
+    ? new Set(getSemesterProgress().completedActions?.[rewards.semester.currentStage.id] || [])
+    : new Set();
+  const missions = version === "kangxuan" && rewards.semester.currentStage
+    ? [
+        { title: "完成本關教學與自我檢查", description: "25 XP", done: semesterActions.has("lesson"), value: 1, target: 1 },
+        { title: "完成本關 10 題練習", description: "50 XP", done: semesterActions.has("practice"), value: 1, target: 1 },
+        { title: "本關全部答對或修正錯題", description: "25 XP", done: semesterActions.has("mastery"), value: 1, target: 1 },
+      ]
+    : rewards.missions;
+  document.getElementById("p-mission-list").innerHTML = missions
     .map(
       (mission) => `
         <div class="mission-item ${mission.done ? "done" : ""}">

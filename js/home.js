@@ -1,6 +1,15 @@
 // js/home.js
 import { getUnitsForVersion, getAvailableQuestionCount, getVersionLabel, isPracticeAvailable } from "./curriculum.js";
-import { getRewardSummary, getUnitSummary, getStreak, getCurrentVersion, getWrongBook } from "./storage.js";
+import {
+  getRewardSummary,
+  getUnitSummary,
+  getStreak,
+  getCurrentVersion,
+  getWrongBook,
+  getSemesterProgress,
+} from "./storage.js";
+import { COURSE_STAGES, COURSE_UNITS } from "./course-stages.js";
+import { getSemesterSummary, getStageStatus } from "./stage-progress.js";
 import { describeSyncStatus } from "./sync-logic.js";
 import { renderVersionSwitcher } from "./version-ui.js";
 import { maskEmail, computeAccountPanelState, nextAccountPanelFlags, getNextMilestoneGap } from "./ui-logic.js";
@@ -21,9 +30,32 @@ function renderVersionHeader() {
   document.getElementById("version-subtitle").textContent = label;
   document.title = `林小玥六年級數學學習站 | ${getVersionLabel(version)}`;
   renderVersionSwitcher("version-switcher-buttons");
+  const isSemesterCourse = version === "kangxuan";
+  document.getElementById("reward-section-heading").textContent = isSemesterCourse ? "本關任務與獎勵" : "每日任務與獎勵";
+  document.getElementById("reward-rule-text").textContent = isSemesterCourse
+    ? "康軒六上 XP 只會在完成關卡任務與單元時獲得；重複練習不會重複加分。"
+    : "XP 只會在完成每日任務時獲得，單題作答不另外加分。";
+  document.getElementById("mission-heading").textContent = isSemesterCourse ? "目前關卡的三項任務" : "今天的小任務";
+  document.getElementById("mission-rule-text").textContent = isSemesterCourse
+    ? "每關每項任務只會獎勵一次，可自由安排學習進度。"
+    : "每項任務每天只會獎勵一次。";
 }
 
 function renderTodayTask() {
+  if (version === "kangxuan") {
+    const summary = getSemesterSummary(getSemesterProgress());
+    const current = summary.currentStage;
+    document.getElementById("task-title").textContent = current
+      ? `目前關卡：第 ${current.order} 關 ${current.topic}`
+      : "康軒六上 79 關全部完成！";
+    document.getElementById("task-desc").textContent = current
+      ? `依序完成教學、10 題練習，以及全對或修正錯題；完成本關可取得 100 XP。`
+      : "太棒了！你已完成全部關卡並取得所有單元獎勵。";
+    const btn = document.getElementById("task-btn");
+    btn.textContent = current ? "開始目前關卡" : "回顧學習地圖";
+    btn.href = current ? `lesson.html?stage=${current.id}` : "#unit-grid";
+    return;
+  }
   const activeUnits = UNITS.filter((u) => isPracticeAvailable(version, u.id));
   if (activeUnits.length === 0) {
     document.getElementById("task-title").textContent = "先從教學模式開始吧！";
@@ -61,6 +93,21 @@ function renderTodayTask() {
 }
 
 function renderOverallProgress() {
+  if (version === "kangxuan") {
+    const semester = getSemesterSummary(getSemesterProgress());
+    const stats = Object.values(getSemesterProgress().stageStats || {});
+    const attempts = stats.reduce((sum, item) => sum + item.attempts, 0);
+    const correct = stats.reduce((sum, item) => sum + item.correct, 0);
+    const progress = Math.round((semester.completedStages / semester.totalStages) * 100);
+    document.getElementById("stat-streak").textContent = getStreak().count || 0;
+    document.getElementById("stat-accuracy").textContent = attempts
+      ? `${Math.round((correct / attempts) * 100)}%`
+      : "0%";
+    document.getElementById("stat-attempts").textContent = attempts;
+    document.getElementById("stat-progress").textContent = `${semester.completedStages}/79`;
+    document.getElementById("overall-progress-bar").style.width = `${progress}%`;
+    return;
+  }
   const activeUnits = UNITS.filter((u) => isPracticeAvailable(version, u.id));
   let totalAttempts = 0;
   let totalCorrect = 0;
@@ -103,6 +150,10 @@ function renderWrongReviewEntry() {
 function renderUnitGrid() {
   const grid = document.getElementById("unit-grid");
   grid.innerHTML = "";
+  if (version === "kangxuan") {
+    renderStageMap(grid);
+    return;
+  }
 
   for (const unit of UNITS) {
     const practiceAvailable = isPracticeAvailable(version, unit.id);
@@ -146,6 +197,55 @@ function renderUnitGrid() {
   }
 }
 
+function renderStageMap(grid) {
+  const progress = getSemesterProgress();
+  const summary = getSemesterSummary(progress);
+  document.getElementById("units-heading").textContent = `康軒六上 79 關學習地圖（已完成 ${summary.completedStages}/79）`;
+  for (const unit of COURSE_UNITS) {
+    const unitSummary = summary.units.find((item) => item.id === unit.id);
+    const stages = COURSE_STAGES.filter((stage) => stage.unitId === unit.id);
+    const details = document.createElement("details");
+    details.className = "stage-unit";
+    details.open = stages.some((stage) => ["available", "in-progress"].includes(getStageStatus(progress, stage.id)));
+    details.innerHTML = `
+      <summary>
+        <span><strong>${escapeHtml(unit.title)}</strong><small>${unitSummary.completedStages}/${unitSummary.totalStages} 關</small></span>
+        <span>${unitSummary.rewardClaimed ? `✅ 已取得 ${unit.completionXp} XP` : `單元獎勵 ${unit.completionXp} XP`}</span>
+      </summary>
+      <div class="stage-list">
+        ${stages.map((stage) => renderStageRow(stage, progress)).join("")}
+      </div>
+    `;
+    grid.appendChild(details);
+  }
+}
+
+function renderStageRow(stage, progress) {
+  const status = getStageStatus(progress, stage.id);
+  const actions = new Set(progress.completedActions?.[stage.id] || []);
+  const label = {
+    locked: "🔒 鎖定",
+    available: "▶ 可開始",
+    "in-progress": "🟡 進行中",
+    completed: "✅ 完成",
+  }[status];
+  const disabled = status === "locked";
+  return `
+    <article class="stage-row ${status}">
+      <div>
+        <strong>第 ${stage.order} 關　${escapeHtml(stage.topic)}</strong>
+        <div class="unit-meta">${label} ・ 教學 ${actions.has("lesson") ? "✅" : "⬜"} ・ 10題 ${actions.has("practice") ? "✅" : "⬜"} ・ 精熟 ${actions.has("mastery") ? "✅" : "⬜"}</div>
+      </div>
+      <div class="stage-actions">
+        ${disabled ? `<button class="btn secondary" disabled>尚未解鎖</button>` : `
+          <a class="btn secondary" href="lesson.html?stage=${stage.id}">教學</a>
+          <a class="btn" href="practice.html?stage=${stage.id}">10題練習</a>
+        `}
+      </div>
+    </article>
+  `;
+}
+
 function renderRewards() {
   const rewards = getRewardSummary();
   document.getElementById("reward-title").textContent = rewards.levelInfo.title;
@@ -159,7 +259,14 @@ function renderRewards() {
     ? visibleBadges.map((badge) => `<span class="mini-badge">🏅 ${badge}</span>`).join("")
     : `<span class="empty-hint">完成每日任務就能收集徽章！</span>`;
 
-  document.getElementById("mission-list").innerHTML = rewards.missions
+  const missions = version === "kangxuan" && rewards.semester.currentStage
+    ? [
+        { title: "完成本關教學與自我檢查", description: "完成後取得 25 XP", done: (getSemesterProgress().completedActions?.[rewards.semester.currentStage.id] || []).includes("lesson"), value: 1, target: 1 },
+        { title: "完成本關 10 題練習", description: "完成後取得 50 XP", done: (getSemesterProgress().completedActions?.[rewards.semester.currentStage.id] || []).includes("practice"), value: 1, target: 1 },
+        { title: "本關全部答對或修正錯題", description: "完成後取得 25 XP", done: (getSemesterProgress().completedActions?.[rewards.semester.currentStage.id] || []).includes("mastery"), value: 1, target: 1 },
+      ]
+    : rewards.missions;
+  document.getElementById("mission-list").innerHTML = missions
     .map(
       (mission) => `
         <div class="mission-item ${mission.done ? "done" : ""}">
@@ -235,6 +342,13 @@ renderWrongReviewEntry();
 renderRewards();
 renderUnitGrid();
 setupLevelRewardModal();
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
 
 // ---- 帳號與雲端同步 ----
 function setupAccountUI() {

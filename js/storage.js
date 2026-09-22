@@ -20,6 +20,13 @@ import {
 } from "./rewards.js";
 import { defaultLearningState, normalizeLearningState } from "./state-shape.js";
 import { isValidVersion, DEFAULT_VERSION } from "./curriculum.js";
+import {
+  calculateSemesterXp,
+  completeStageAction,
+  getSemesterSummary,
+  normalizeSemesterProgress,
+  recordStageAnswer as updateStageAnswer,
+} from "./stage-progress.js";
 
 const STORAGE_KEY = "yue_math_g6_v1";
 
@@ -147,6 +154,7 @@ export function recordAnswer(payload) {
     type: payload.type,
     choices: Array.isArray(payload.choices) ? payload.choices.slice() : undefined,
     hint: payload.hint,
+    stageId: payload.stageId,
     isCorrect: payload.isCorrect,
     date: today,
   });
@@ -158,16 +166,31 @@ export function recordAnswer(payload) {
   );
   state.streak.lastDate = today;
 
-  const rewardResult = applyAnswerReward(state.rewards, {
-    unitId: payload.unitId,
-    questionId: payload.questionId,
-    isCorrect: payload.isCorrect,
-    fixedWrong: wasWrong && payload.isCorrect,
-  });
-  state.rewards = rewardResult.rewards;
+  let rewardMessage = "";
+  if (payload.stageId) {
+    state.semesterProgress = updateStageAnswer(state.semesterProgress, {
+      stageId: payload.stageId,
+      questionId: payload.questionId,
+      isCorrect: payload.isCorrect,
+    });
+    if (wasWrong && payload.isCorrect) {
+      const result = completeStageAction(state.semesterProgress, payload.stageId, "mastery");
+      state.semesterProgress = result.progress;
+      rewardMessage = buildStageRewardMessage(result, "錯題修正完成");
+    }
+  } else {
+    const rewardResult = applyAnswerReward(state.rewards, {
+      unitId: payload.unitId,
+      questionId: payload.questionId,
+      isCorrect: payload.isCorrect,
+      fixedWrong: wasWrong && payload.isCorrect,
+    });
+    state.rewards = rewardResult.rewards;
+    rewardMessage = rewardResult.message;
+  }
 
   saveState(state);
-  return { ...state, rewardMessage: rewardResult.message };
+  return { ...state, rewardMessage };
 }
 
 export function getUnitSummary(unitId, totalQuestions, version) {
@@ -211,8 +234,18 @@ export function getRecentQuestionIds(unitId) {
   return state.rewards.recentQuestionIds[unitId] || [];
 }
 
-export function recordLessonRead(unitId) {
+export function recordLessonRead(unitId, stageId = null) {
   const state = loadState();
+  if (stageId) {
+    const result = completeStageAction(state.semesterProgress, stageId, "lesson");
+    state.semesterProgress = result.progress;
+    saveState(state);
+    return {
+      ...state,
+      lessonMessage: buildStageRewardMessage(result, "本關教學完成"),
+      firstReadToday: result.changed,
+    };
+  }
   const result = applyLessonReward(state.rewards, unitId);
   state.rewards = result.rewards;
   saveState(state);
@@ -224,8 +257,29 @@ export function recordLessonRead(unitId) {
  * 供「全部答對或修正錯題」每日任務判定。只在整個 session 完成時呼叫一次，
  * XP 與星星僅由每日任務完成時發放，不會重複發獎。
  */
-export function recordPracticeSessionResult(allCorrect) {
+export function recordPracticeSessionResult(allCorrect, stageId = null, questionCount = 0) {
   const state = loadState();
+  if (stageId) {
+    let progress = normalizeSemesterProgress(state.semesterProgress);
+    const messages = [];
+    if (questionCount >= 10) {
+      const practice = completeStageAction(progress, stageId, "practice");
+      progress = practice.progress;
+      if (practice.changed || practice.unitBonusXp) {
+        messages.push(buildStageRewardMessage(practice, "本關 10 題練習完成"));
+      }
+    }
+    if (allCorrect) {
+      const mastery = completeStageAction(progress, stageId, "mastery");
+      progress = mastery.progress;
+      if (mastery.changed || mastery.unitBonusXp) {
+        messages.push(buildStageRewardMessage(mastery, "本關全對挑戰完成"));
+      }
+    }
+    state.semesterProgress = progress;
+    saveState(state);
+    return { ...state, sessionMessage: messages.filter(Boolean).join(" ") };
+  }
   const result = applyPracticeSessionReward(state.rewards, { allCorrect });
   state.rewards = result.rewards;
   saveState(state);
@@ -245,7 +299,11 @@ export function isLessonCompletedBefore(unitId) {
  */
 export function confirmLevelReward(level) {
   const state = loadState();
-  const result = confirmLevelRewardMilestone(state.rewards, level);
+  const result = confirmLevelRewardMilestone(
+    state.rewards,
+    level,
+    state.version === "kangxuan" ? calculateSemesterXp(state.semesterProgress) : state.rewards.xp
+  );
   if (result.ok) {
     state.rewards = result.rewards;
     saveState(state);
@@ -254,11 +312,31 @@ export function confirmLevelReward(level) {
 }
 
 export function getRewardSummary() {
-  const rewards = loadState().rewards;
+  const state = loadState();
+  const rewards = state.rewards;
+  const semesterXp = calculateSemesterXp(state.semesterProgress);
+  const displayXp = state.version === "kangxuan" ? semesterXp : rewards.xp;
   return {
     ...rewards,
-    levelInfo: getLevelInfo(rewards.xp),
+    legacyXp: rewards.xp,
+    xp: displayXp,
+    levelInfo: getLevelInfo(displayXp),
     missions: evaluateMissions(rewards),
-    levelRewards: getLevelRewardsSummary(rewards),
+    levelRewards: getLevelRewardsSummary(rewards, displayXp),
+    semester: getSemesterSummary(state.semesterProgress),
   };
+}
+
+export function getSemesterProgress() {
+  return loadState().semesterProgress;
+}
+
+export function getSemesterProgressSummary() {
+  return getSemesterSummary(loadState().semesterProgress);
+}
+
+function buildStageRewardMessage(result, label) {
+  if (!result.changed && !result.unitBonusXp) return `${label}，先前已取得本段 XP，本次不重複計分。`;
+  const bonus = result.unitBonusXp ? `，另獲得單元完成獎勵 ${result.unitBonusXp} XP` : "";
+  return `${label}！獲得 ${result.awardedXp - result.unitBonusXp} XP${bonus}。`;
 }

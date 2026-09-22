@@ -110,16 +110,16 @@
       </div>
     </section>
 
-    <!-- 每日任務與獎勵 -->
+    <!-- 本關任務與獎勵 -->
     <section>
-      <h2 class="section-title">每日任務與獎勵</h2>
+      <h2 class="section-title" id="reward-section-heading">本關任務與獎勵</h2>
       <div class="reward-layout">
         <div class="card reward-card">
           <div class="reward-title">🚀 <span id="reward-title">玥玥剛出新手村</span></div>
           <div class="reward-meta">
             等級 <strong id="reward-level">1</strong> ・ XP <strong id="reward-xp">0</strong>
           </div>
-          <p class="unit-meta">XP 只會在完成每日任務時獲得，單題作答不另外加分。</p>
+          <p class="unit-meta" id="reward-rule-text">康軒六上 XP 只會在完成關卡任務與單元時獲得；重複練習不會重複加分。</p>
           <div class="progress-bar-track">
             <div class="progress-bar-fill" id="reward-progress-bar" style="width: 0%;"></div>
           </div>
@@ -127,8 +127,8 @@
           <button type="button" class="btn secondary level-reward-trigger" id="btn-open-level-rewards" aria-haspopup="dialog" aria-controls="level-reward-modal">🎁 查看等級獎品</button>
         </div>
         <div class="card">
-          <h3 style="margin-top:0;">今天的小任務</h3>
-          <p class="unit-meta">每項任務每天只會獎勵一次。</p>
+          <h3 style="margin-top:0;" id="mission-heading">目前關卡的三項任務</h3>
+          <p class="unit-meta" id="mission-rule-text">每關每項任務只會獎勵一次，可自由安排學習進度。</p>
           <div class="mission-list" id="mission-list"></div>
         </div>
       </div>
@@ -153,7 +153,7 @@
 
     <!-- 單元卡片 -->
     <section>
-      <h2 class="section-title">各單元課程</h2>
+      <h2 class="section-title" id="units-heading">各單元課程</h2>
       <div class="unit-grid" id="unit-grid"></div>
     </section>
   </main>

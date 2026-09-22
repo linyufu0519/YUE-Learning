@@ -247,6 +247,65 @@ a {
   gap: 14px;
 }
 
+.stage-unit {
+  grid-column: 1 / -1;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.stage-unit > summary {
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  list-style: none;
+}
+
+.stage-unit > summary span {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+}
+
+.stage-list {
+  border-top: 1px solid #e5e7eb;
+}
+
+.stage-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.stage-row.locked {
+  opacity: 0.62;
+}
+
+.stage-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .stage-unit > summary,
+  .stage-unit > summary span,
+  .stage-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .stage-actions .btn {
+    flex: 1;
+  }
+}
+
 .unit-card {
   background: var(--color-card);
   border-radius: var(--radius);

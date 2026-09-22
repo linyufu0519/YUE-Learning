@@ -36,6 +36,7 @@ export function createWrongReviewQuestions(
       return {
         id: entry.questionId,
         unitId: entry.unitId,
+        stageId: entry.stageId || originalQuestion?.stageId || null,
         difficulty: "review",
         selectedDifficulty: "review",
         type: choiceData.type,
