@@ -178,6 +178,143 @@ const REVIEW_TOPIC_TARGET = Object.freeze({
   綜合應用: "後半冊綜合",
 });
 
+const SCENARIO_PROFILE_BY_TOPIC = Object.freeze({
+  "質數與合數": "number-structure",
+  質因數分解: "number-structure",
+  公因數: "factor-grouping",
+  最大公因數: "factor-grouping",
+  短除法: "factor-grouping",
+  公倍數: "multiple-cycles",
+  最小公倍數: "multiple-cycles",
+  倒數: "fraction-sharing",
+  整數除以分數: "fraction-sharing",
+  分數除以整數: "fraction-sharing",
+  同分母分數除法: "fraction-sharing",
+  異分母分數除法: "fraction-sharing",
+  帶分數除法: "fraction-sharing",
+  商的意義: "fraction-sharing",
+  單位量: "fraction-sharing",
+  數列規律: "pattern-building",
+  圖形規律: "pattern-building",
+  和不變: "invariant-lab",
+  差不變: "invariant-lab",
+  積不變: "invariant-lab",
+  商不變: "invariant-lab",
+  間隔問題: "interval-planning",
+  整數除以小數: "decimal-sharing",
+  小數除以整數: "decimal-sharing",
+  小數除以小數: "decimal-sharing",
+  商的小數點: "decimal-sharing",
+  估算: "decimal-sharing",
+  除法關係: "decimal-sharing",
+  平均分配: "decimal-sharing",
+  比的記法: "ratio-mixture",
+  比值: "ratio-mixture",
+  相等的比: "ratio-mixture",
+  最簡整數比: "ratio-mixture",
+  比的化簡: "ratio-mixture",
+  連比: "ratio-mixture",
+  圓周率: "circle-boundary",
+  直徑與半徑: "circle-boundary",
+  圓周長: "circle-boundary",
+  扇形弧長: "circle-boundary",
+  扇形周長: "circle-boundary",
+  反推半徑: "circle-boundary",
+  圓面積: "circle-area",
+  半徑平方: "circle-area",
+  扇形面積: "circle-area",
+  半圓面積: "circle-area",
+  組合圖形: "circle-area",
+  速率意義: "motion",
+  距離: "motion",
+  時間: "motion",
+  平均速率: "motion",
+  時速換算: "motion",
+  分速換算: "motion",
+  秒速換算: "motion",
+  放大圖: "map-model",
+  縮圖: "map-model",
+  比例尺: "map-model",
+  圖上距離: "map-model",
+  實際距離: "map-model",
+  長度換算: "map-model",
+  面積變化: "map-model",
+  後半冊綜合: "semester-challenge",
+});
+
+const SCENARIO_OPENERS = Object.freeze({
+  "number-structure": Object.freeze([
+    (person) => `${person}在數學角整理數字卡，想找出每個數的組成`,
+    (person) => `${person}正在破解數字密碼，需要判斷因數與質數`,
+    (person) => `${person}把數字貼到分類板上，準備檢查它們的特性`,
+  ]),
+  "factor-grouping": Object.freeze([
+    (person, place) => `${person}在${place}分裝用品，想安排整齊且相同的組數`,
+    (person) => `${person}正在把兩批材料平均分組，希望每組數量完全相同`,
+    (person) => `${person}要把物品分成最多的相同組，正在比較可行的分法`,
+  ]),
+  "multiple-cycles": Object.freeze([
+    (person, place) => `${person}在${place}記錄兩項活動的週期，想找出同時發生的時刻`,
+    (person) => `${person}觀察兩盞燈規律閃爍，正在推算下一次一起亮的時間`,
+    (person) => `${person}安排兩種固定間隔的活動，需要找出重合的次數`,
+  ]),
+  "fraction-sharing": Object.freeze([
+    (person) => `${person}在烘焙教室分裝果汁與麵粉，想算出每份或可分幾份`,
+    (person) => `${person}把一批材料依分數份量裝盒，正在確認能裝多少盒`,
+    (person) => `${person}依食譜的分數用量分配材料，需要算清楚剩餘與份數`,
+  ]),
+  "pattern-building": Object.freeze([
+    (person) => `${person}在創作區排列積木圖案，正在觀察下一步的數量規律`,
+    (person) => `${person}用圖卡排出規律序列，想推算指定位置的數量`,
+    (person) => `${person}記錄每一輪增加的圖形，正在找出前後項的關係`,
+  ]),
+  "invariant-lab": Object.freeze([
+    (person) => `${person}在數學實驗桌調整兩個數，想讓運算結果保持不變`,
+    (person) => `${person}改變算式中的數字，正在檢查和、差、積或商的規律`,
+    (person) => `${person}用天平概念比較算式，希望調整後的結果仍然相同`,
+  ]),
+  "interval-planning": Object.freeze([
+    (person, place) => `${person}在${place}安排路燈與座位，正在計算間隔和端點`,
+    (person) => `${person}沿著步道等距放置標誌，需要算出間隔或標誌數`,
+    (person) => `${person}規劃一圈等距設施，正在分辨封閉路線的間隔關係`,
+  ]),
+  "decimal-sharing": Object.freeze([
+    (person) => `${person}在商店分裝飲料與材料，需要用小數除法算每份數量`,
+    (person) => `${person}核對商品重量與份數，正在估算並計算小數商`,
+    (person) => `${person}把帶有小數的總量平均分配，想確認商的小數點位置`,
+  ]),
+  "ratio-mixture": Object.freeze([
+    (person) => `${person}在調飲區按比例混合果汁，正在確認各材料的份量關係`,
+    (person) => `${person}依配方分裝不同材料，需要比較前項、後項與比值`,
+    (person) => `${person}替活動分配三種用品，正用比和連比計算各份數量`,
+  ]),
+  "circle-boundary": Object.freeze([
+    (person) => `${person}在工藝教室測量輪子與花圈，正在計算圓周和弧長`,
+    (person) => `${person}替圓形跑道規劃一圈長度，需要運用直徑、半徑和圓周率`,
+    (person) => `${person}製作扇形邊框，正在估算弧線與兩側半徑的總長`,
+  ]),
+  "circle-area": Object.freeze([
+    (person) => `${person}在花園設計圓形花圃，正在估算圓面與扇形占地`,
+    (person) => `${person}替圓桌和半圓地墊計算面積，需要比較不同區域`,
+    (person) => `${person}規劃由圓形組成的圖案，正在計算增加或扣除的面積`,
+  ]),
+  motion: Object.freeze([
+    (person) => `${person}在運動場記錄騎車與跑步行程，正在比較距離、時間和速率`,
+    (person) => `${person}規劃交通路線，需要換算時速、分速或秒速`,
+    (person) => `${person}整理兩段旅程的紀錄，想算出總距離與平均速率`,
+  ]),
+  "map-model": Object.freeze([
+    (person) => `${person}在地圖教室規劃路線與模型，正在換算圖上和實際尺寸`,
+    (person) => `${person}製作放大圖與縮圖，需要比較長度和面積的倍率`,
+    (person) => `${person}查看校園平面圖，想用比例尺算出真實距離`,
+  ]),
+  "semester-challenge": Object.freeze([
+    (person) => `${person}來到學期成果挑戰站，準備綜合運用圓、速率與比例尺`,
+    (person) => `${person}正在完成六上總複習任務，需要判斷合適的解題方法`,
+    (person) => `${person}參加數學闖關賽，準備把不同單元的知識連起來`,
+  ]),
+});
+
 const LIFE_TARGET = Object.freeze({
   "gcd-lcm": "最大公因數",
   "fraction-division": "單位量",
@@ -225,7 +362,7 @@ function factorGenerator(topic, operationKey, difficulty, variant, v) {
       difficulty,
       () => result(operationKey, "input", `${actualGcd} 是 ${left} 和 ${right} 的公因數；兩數各除以它，商的和是多少？`, left / actualGcd + right / actualGcd, "公因數必須同時整除兩數。", `${left} ÷ ${actualGcd} + ${right} ÷ ${actualGcd} = ${left / actualGcd + right / actualGcd}。`),
       () => result(operationKey, "choice", `下列哪一個數可同時整除 ${left} 和 ${right}？`, actualGcd, "同時試除兩數，不要求最大。", `${actualGcd} 可同時整除兩數，所以是公因數。`, [String(actualGcd), String(actualLcm), String(actualLcm + 1), String(left + right)]),
-      () => result(operationKey, "input", `${v.person}把 ${left} 個${v.object}與 ${right} 張卡片，每 ${actualGcd} 個一包，共可包幾包？`, left / actualGcd + right / actualGcd, "公因數可作為兩種物品共同的每包數。", `${left} ÷ ${actualGcd} + ${right} ÷ ${actualGcd} = ${left / actualGcd + right / actualGcd}。`)
+      () => result(operationKey, "input", `${v.person}把 ${left} 張卡片與 ${right} 張貼紙分開包裝，每包都放 ${actualGcd} 張，兩種物品共可裝幾包？`, left / actualGcd + right / actualGcd, "公因數可作為兩種物品共同的每包數。", `${left} ÷ ${actualGcd} + ${right} ÷ ${actualGcd} = ${left / actualGcd + right / actualGcd}。`)
     );
   }
   if (topic === "公倍數") {
@@ -425,11 +562,13 @@ function decimalGenerator(topic, operationKey, difficulty, variant, v) {
 }
 
 function decimalDivisionSet(topic, operationKey, difficulty, v, dividend, divisor, quotient) {
+  const bottleCount = v.n + v.b;
+  const applicationTotal = round(divisor * bottleCount);
   return complexity(
     difficulty,
     () => result(operationKey, "input", `${topic}：${dividend} ÷ ${divisor} = ？`, quotient, "同時移動被除數與除數的小數點，直到除數為整數。", `${dividend} ÷ ${divisor} = ${quotient}。`),
     () => result(operationKey, "input", `${topic}反推：□ ÷ ${divisor} = ${quotient}，□ 是多少？`, dividend, "商乘除數可還原被除數。", `${quotient} × ${divisor} = ${dividend}。`),
-    () => result(operationKey, "input", `${v.person}有 ${dividend} 公升果汁，每瓶裝 ${divisor} 公升，可裝 ${quotient} 瓶；每瓶貼 2 張標籤，共需幾張？`, quotient * 2, "先完成題目指定的小數除法，再乘每瓶標籤數。", `${dividend} ÷ ${divisor} × 2 = ${quotient * 2}。`)
+    () => result(operationKey, "input", `${v.person}有 ${applicationTotal} 公升果汁，每瓶裝 ${divisor} 公升，裝滿後每瓶貼 2 張標籤，共需幾張？`, bottleCount * 2, "先用總量除以每瓶容量，再乘每瓶標籤數。", `${applicationTotal} ÷ ${divisor} × 2 = ${bottleCount * 2}。`)
   );
 }
 
@@ -488,7 +627,7 @@ function ratioGenerator(topic, operationKey, difficulty, variant, v) {
     difficulty,
     () => result(operationKey, "input", `${first * factor}：${second * factor} 化簡後，兩項和是多少？`, simpleFirst + simpleSecond, "兩項同除以最大公因數。", `化簡為 ${simpleFirst}：${simpleSecond}，和為 ${simpleFirst + simpleSecond}。`),
     () => result(operationKey, "input", `${simpleFirst}：${simpleSecond} = ${simpleFirst * factor}：□，□ 是多少？`, simpleSecond * factor, "兩項同乘相同倍數。", `${simpleSecond} × ${factor} = ${simpleSecond * factor}。`),
-    () => result(operationKey, "input", `${v.person}按最簡比 ${simpleFirst}：${simpleSecond} 分配${v.object}，第一份 ${simpleFirst * factor} 個，兩份共幾個？`, (simpleFirst + simpleSecond) * factor, "先求倍率，再乘兩項和。", `(${simpleFirst} + ${simpleSecond}) × ${factor} = ${(simpleFirst + simpleSecond) * factor}。`)
+    () => result(operationKey, "input", `${v.person}按最簡比 ${simpleFirst}：${simpleSecond} 調製兩種果汁，第一種用了 ${simpleFirst * factor} 杯，兩種共用了幾杯？`, (simpleFirst + simpleSecond) * factor, "先求倍率，再乘兩項和。", `(${simpleFirst} + ${simpleSecond}) × ${factor} = ${(simpleFirst + simpleSecond) * factor}。`)
   );
 }
 
@@ -537,7 +676,7 @@ function circleGenerator(topic, operationKey, difficulty, variant, v) {
     difficulty,
     () => result(operationKey, "input", `直徑 ${diameter} 公分的圓，周長多少公分？（π 取 3.14）`, circumference, "圓周長 = 直徑 × 3.14。", `${diameter} × 3.14 = ${circumference}。`),
     () => result(operationKey, "input", `圓周長 ${circumference} 公分，直徑多少公分？（π 取 3.14）`, diameter, "直徑 = 圓周長 ÷ 3.14。", `${circumference} ÷ 3.14 = ${diameter}。`),
-    () => result(operationKey, "input", `${v.person}繞直徑 ${diameter} 公尺的圓形${v.place}走 2 圈，共走多少公尺？`, circumference * 2, "先求一圈周長，再乘圈數。", `${diameter} × 3.14 × 2 = ${circumference * 2}。`)
+    () => result(operationKey, "input", `${v.person}繞直徑 ${diameter} 公尺的圓形花圃走 2 圈，共走多少公尺？`, circumference * 2, "先求一圈周長，再乘圈數。", `${diameter} × 3.14 × 2 = ${circumference * 2}。`)
   );
 }
 
@@ -717,6 +856,11 @@ function operationKeysFor(stage) {
   return TOPIC_OPERATION_KEYS[topic];
 }
 
+function scenarioProfileFor(stage, topic) {
+  if (topic === "反推半徑" && stage.generatorKey === "circle-area") return "circle-area";
+  return SCENARIO_PROFILE_BY_TOPIC[topic];
+}
+
 function combinedReviewGenerator(topic, operationKey, difficulty, variant, v) {
   if (variant === 0) return circleGenerator("圓周長", operationKey, difficulty, variant, v);
   if (variant === 1) return speedGenerator("平均速率", operationKey, difficulty, variant, v);
@@ -734,6 +878,7 @@ export const STAGE_STRATEGY_METADATA = Object.freeze(
         topic: stage.topic,
         operationTopic: topic,
         domain: stage.generatorKey,
+        scenarioProfile: scenarioProfileFor(stage, topic),
         operationKeys: Object.freeze([...operationKeys]),
         strategyKeys: Object.freeze(operationKeys.map((key) => `${stage.generatorKey}:${stage.topic}:${key}`)),
       })];
@@ -743,9 +888,13 @@ export const STAGE_STRATEGY_METADATA = Object.freeze(
 
 function buildQuestion(stage, difficulty, index, generated, rng) {
   const answer = String(generated.answer);
-  const scenario = `${PEOPLE[index % PEOPLE.length]}在${
+  const profile = STAGE_STRATEGY_METADATA[stage.id].scenarioProfile;
+  const openers = SCENARIO_OPENERS[profile];
+  if (!openers) throw new RangeError(`關卡缺少情境敘述：${stage.id}`);
+  const scenario = openers[index % openers.length](
+    PEOPLE[index % PEOPLE.length],
     PLACES[Math.floor(index / PEOPLE.length) % PLACES.length]
-  }準備${OBJECTS[Math.floor(index / (PEOPLE.length * PLACES.length)) % OBJECTS.length]}時`;
+  );
   const question = {
     id: `${stage.id}-${difficulty}-${index}`,
     stageId: stage.id,
@@ -753,7 +902,7 @@ function buildQuestion(stage, difficulty, index, generated, rng) {
     difficulty,
     concept: `${stage.topic}｜${generated.concept}`,
     type: generated.type,
-    prompt: `【${LEVEL_LABEL[difficulty]}｜${stage.topic}】${scenario}，遇到這題：${generated.prompt}`,
+    prompt: `【${LEVEL_LABEL[difficulty]}｜${stage.topic}】${scenario}：${generated.prompt}`,
     answer,
     hint: generated.hint,
     explanation: generated.explanation,

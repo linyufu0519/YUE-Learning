@@ -79,6 +79,23 @@ const OPERATION_EVIDENCE = {
   後半冊綜合: /圓周長|平均速率|比例尺/,
 };
 
+const SCENARIO_EVIDENCE = {
+  "number-structure": /數字卡|數字密碼|分類板/,
+  "factor-grouping": /分裝用品|平均分組|相同組/,
+  "multiple-cycles": /活動的週期|規律閃爍|固定間隔/,
+  "fraction-sharing": /果汁與麵粉|分數份量|食譜/,
+  "pattern-building": /積木圖案|規律序列|增加的圖形/,
+  "invariant-lab": /運算結果保持不變|和、差、積或商|結果仍然相同/,
+  "interval-planning": /路燈與座位|等距放置|等距設施/,
+  "decimal-sharing": /小數除法|商品重量|帶有小數/,
+  "ratio-mixture": /按比例混合|前項、後項與比值|比和連比/,
+  "circle-boundary": /輪子與花圈|圓形跑道|扇形邊框/,
+  "circle-area": /圓形花圃|圓桌和半圓地墊|圓形組成/,
+  motion: /騎車與跑步|交通路線|兩段旅程/,
+  "map-model": /地圖教室|放大圖與縮圖|校園平面圖/,
+  "semester-challenge": /學期成果挑戰站|六上總複習|數學闖關賽/,
+};
+
 test("79 關皆由 topic dispatcher 綁定三個實際 operation，而非單元共用模板", () => {
   assert.equal(COURSE_STAGES.length, 79);
   assert.equal(Object.keys(STAGE_STRATEGY_METADATA).length, 79);
@@ -106,6 +123,20 @@ test("公因數只做共同整除，不會因 variant 誤出最小公倍數", ()
       assert.doesNotMatch(`${question.prompt} ${question.hint} ${question.explanation}`, /最小公倍數|最早同時/);
       assert.match(question.concept, /list-common-factors|common-divisibility|equal-grouping/);
     }
+  }
+});
+
+test("所有 hard 題使用符合主題且可輪替的生活情境，不再套用通用彩帶開場", () => {
+  for (const stage of COURSE_STAGES) {
+    const contract = STAGE_STRATEGY_METADATA[stage.id];
+    assert.ok(SCENARIO_EVIDENCE[contract.scenarioProfile], `${stage.id} 缺少情境契約`);
+    const questions = [0, 1, 2].map((index) => generateStageQuestion(stage.id, "hard", index));
+    for (const question of questions) {
+      assert.doesNotMatch(question.prompt, /準備彩帶時|遇到這題/);
+      assert.match(question.prompt, SCENARIO_EVIDENCE[contract.scenarioProfile], `${stage.id} 情境與主題不符`);
+    }
+    const openings = questions.map((question) => question.prompt.split("：").slice(0, -1).join("："));
+    assert.equal(new Set(openings).size, 3, `${stage.id} 的 hard 情境沒有輪替`);
   }
 });
 
