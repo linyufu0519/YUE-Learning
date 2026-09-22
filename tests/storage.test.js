@@ -63,6 +63,27 @@ test("recordAnswer 答錯會加入錯題本", () => {
   assert.equal(wrongBook[0].questionId, "fd-01");
 });
 
+test("recordAnswer 會保存選擇題型、選項與提示供錯題複習還原", () => {
+  resetState();
+  recordAnswer({
+    unitId: "kx-unit1",
+    questionId: "kx-choice-9",
+    prompt: "9 是質數還是合數？",
+    isCorrect: false,
+    yourAnswer: "質數",
+    correctAnswer: "合數",
+    explanation: "9 還有因數 3。",
+    type: "choice",
+    choices: ["質數", "合數"],
+    hint: "檢查 3 能否整除 9。",
+    version: "kangxuan",
+  });
+  const [entry] = getWrongBook("kangxuan");
+  assert.equal(entry.type, "choice");
+  assert.deepEqual(entry.choices, ["質數", "合數"]);
+  assert.equal(entry.hint, "檢查 3 能否整除 9。");
+});
+
 test("錯題重新答對會從正確版本錯題本移除並完成修正錯題任務", () => {
   resetState();
   const payload = {

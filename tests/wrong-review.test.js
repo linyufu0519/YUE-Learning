@@ -40,6 +40,63 @@ test("錯題複習可將整份錯題轉為可作答題目，且保留單元與�
   );
 });
 
+test("新錯題保存的選擇題型與選項會完整還原，且包含唯一正確答案", () => {
+  const questions = createWrongReviewQuestions([
+    {
+      unitId: "kx-unit1",
+      questionId: "kx1-prime-easy-9",
+      prompt: "9 是質數還是合數？",
+      correctAnswer: "合數",
+      explanation: "9 還有因數 3。",
+      type: "choice",
+      choices: ["質數", "合數"],
+      hint: "檢查除了 1 和自己之外是否還有其他因數。",
+    },
+  ]);
+  assert.equal(questions[0].type, "choice");
+  assert.deepEqual(questions[0].choices, ["質數", "合數"]);
+  assert.equal(questions[0].choices.filter((choice) => choice === questions[0].answer).length, 1);
+  assert.equal(questions[0].hint, "檢查除了 1 和自己之外是否還有其他因數。");
+});
+
+test("舊錯題沒有題型欄位時會回查原題庫，恢復原選擇題與選項", () => {
+  const legacyWrong = [
+    {
+      unitId: "kx-unit1",
+      questionId: "legacy-choice-1",
+      prompt: "9 是質數還是合數？",
+      correctAnswer: "合數",
+      explanation: "9 還有因數 3。",
+    },
+  ];
+  const questions = createWrongReviewQuestions(legacyWrong, null, (entry) => ({
+    id: entry.questionId,
+    type: "choice",
+    choices: ["質數", "合數"],
+    answer: "合數",
+    hint: "找找看 3 能不能整除 9。",
+  }));
+  assert.equal(questions[0].type, "choice");
+  assert.deepEqual(questions[0].choices, ["質數", "合數"]);
+  assert.equal(questions[0].answer, "合數");
+});
+
+test("選項缺少正確答案的損壞資料會安全退回輸入題，不呈現全部錯誤的選項", () => {
+  const questions = createWrongReviewQuestions([
+    {
+      unitId: "kx-unit1",
+      questionId: "broken-choice",
+      prompt: "9 是質數還是合數？",
+      correctAnswer: "合數",
+      explanation: "9 還有因數 3。",
+      type: "choice",
+      choices: ["質數", "都不是"],
+    },
+  ]);
+  assert.equal(questions[0].type, "input");
+  assert.equal(questions[0].choices, undefined);
+});
+
 test("錯題複習可依版本內唯一鍵選擇單一題目", () => {
   const selected = createWrongReviewQuestions(wrongBook, getWrongReviewKey(wrongBook[1]));
   assert.equal(selected.length, 1);

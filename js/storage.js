@@ -116,7 +116,7 @@ function getUnitState(progress, unitId) {
 
 /**
  * 記錄一題作答結果，更新（依版本區分的）單元統計、錯題本，並更新連續學習天數與獎勵。
- * @param {{unitId:string, questionId:string, prompt:string, isCorrect:boolean, yourAnswer:string, correctAnswer:string, explanation:string, version?:string}} payload
+ * @param {{unitId:string, questionId:string, prompt:string, isCorrect:boolean, yourAnswer:string, correctAnswer:string, explanation:string, version?:string, type?:string, choices?:string[], hint?:string}} payload
  */
 export function recordAnswer(payload) {
   const state = loadState();
@@ -144,6 +144,9 @@ export function recordAnswer(payload) {
     yourAnswer: payload.yourAnswer,
     correctAnswer: payload.correctAnswer,
     explanation: payload.explanation,
+    type: payload.type,
+    choices: Array.isArray(payload.choices) ? payload.choices.slice() : undefined,
+    hint: payload.hint,
     isCorrect: payload.isCorrect,
     date: today,
   });

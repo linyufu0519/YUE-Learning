@@ -1,5 +1,11 @@
 // js/practice.js
-import { resolveUnit, getPracticeBankKey, getAvailableQuestionCount, getVersionLabel } from "./curriculum.js";
+import {
+  resolveUnit,
+  getPracticeBankKey,
+  getAvailableQuestionCount,
+  getQuestionBank,
+  getVersionLabel,
+} from "./curriculum.js";
 import { gradeAnswer } from "./logic.js";
 import {
   getCurrentVersion,
@@ -121,7 +127,9 @@ function renderWrongReviewList() {
 }
 
 function startWrongReview(selectedKey = null) {
-  questions = createWrongReviewQuestions(getWrongBook(version), selectedKey);
+  questions = createWrongReviewQuestions(getWrongBook(version), selectedKey, (entry) =>
+    getQuestionBank(version, entry.unitId).find((question) => question.id === entry.questionId)
+  );
   if (questions.length === 0) {
     renderWrongReviewList();
     return;
@@ -236,6 +244,9 @@ function handleAnswer(userAnswer, element) {
     yourAnswer: String(userAnswer),
     correctAnswer: q.answer,
     explanation: q.explanation,
+    type: q.type,
+    choices: q.choices,
+    hint: q.hint,
     version,
   });
 
