@@ -68,6 +68,14 @@ function nonFactorChoices(value, answer, count = 3) {
   return choices;
 }
 
+function predicateDistractors(answer, isAlsoCorrect, count = 3) {
+  const choices = [];
+  for (let candidate = 1; choices.length < count; candidate += 1) {
+    if (candidate !== answer && !isAlsoCorrect(candidate)) choices.push(candidate);
+  }
+  return [String(answer), ...choices.map(String)];
+}
+
 function round(value, digits = 2) {
   return Number(value.toFixed(digits));
 }
@@ -407,6 +415,14 @@ function factorGenerator(topic, operationKey, difficulty, variant, v) {
   const right = common * (v.c + 1);
   const actualGcd = gcd(left, right);
   const actualLcm = lcm(left, right);
+  const commonFactorChoices = predicateDistractors(
+    actualGcd,
+    (candidate) => left % candidate === 0 && right % candidate === 0
+  );
+  const commonMultipleChoices = predicateDistractors(
+    actualLcm,
+    (candidate) => candidate % left === 0 && candidate % right === 0
+  );
   if (topic === "質數與合數") {
     const composite = v.n * (v.b + 1);
     const factorList = divisors(composite);
@@ -439,7 +455,7 @@ function factorGenerator(topic, operationKey, difficulty, variant, v) {
     return complexity(
       difficulty,
       () => result(operationKey, "input", `${actualGcd} 是 ${left} 和 ${right} 的公因數；兩數各除以它，商的和是多少？`, left / actualGcd + right / actualGcd, "公因數必須同時整除兩數。", `${left} ÷ ${actualGcd} + ${right} ÷ ${actualGcd} = ${left / actualGcd + right / actualGcd}。`),
-      () => result(operationKey, "choice", `下列哪一個數可同時整除 ${left} 和 ${right}？`, actualGcd, "同時試除兩數，不要求最大。", `${actualGcd} 可同時整除兩數，所以是公因數。`, [String(actualGcd), String(actualLcm), String(actualLcm + 1), String(left + right)]),
+      () => result(operationKey, "choice", `下列哪一個數可同時整除 ${left} 和 ${right}？`, actualGcd, "同時試除兩數，不要求最大。", `${actualGcd} 可同時整除兩數，所以是公因數。`, commonFactorChoices),
       () => result(operationKey, "input", `${v.person}把 ${left} 張卡片與 ${right} 張貼紙分開包裝，每包都放 ${actualGcd} 張，兩種物品共可裝幾包？`, left / actualGcd + right / actualGcd, "公因數可作為兩種物品共同的每包數。", `${left} ÷ ${actualGcd} + ${right} ÷ ${actualGcd} = ${left / actualGcd + right / actualGcd}。`)
     );
   }
@@ -447,7 +463,7 @@ function factorGenerator(topic, operationKey, difficulty, variant, v) {
     return complexity(
       difficulty,
       () => result(operationKey, "input", `${actualLcm} 是 ${left} 和 ${right} 的公倍數；它分別是兩數的倍數次數之和是多少？`, actualLcm / left + actualLcm / right, "公倍數必須能被兩數整除。", `${actualLcm} ÷ ${left} + ${actualLcm} ÷ ${right} = ${actualLcm / left + actualLcm / right}。`),
-      () => result(operationKey, "choice", `下列哪一個數同時是 ${left} 和 ${right} 的倍數？`, actualLcm, "共同倍數能同時被兩數整除。", `${actualLcm} 可同時被 ${left}、${right} 整除。`, [String(actualLcm), String(actualGcd), String(left + right), String(actualLcm + 1)]),
+      () => result(operationKey, "choice", `下列哪一個數同時是 ${left} 和 ${right} 的倍數？`, actualLcm, "共同倍數能同時被兩數整除。", `${actualLcm} 可同時被 ${left}、${right} 整除。`, commonMultipleChoices),
       () => result(operationKey, "input", `兩盞燈每 ${left} 秒與 ${right} 秒閃一次，經過 ${actualLcm * 2} 秒時，共同閃過幾次？`, 2, "共同發生的間隔是最小公倍數。", `${actualLcm * 2} ÷ ${actualLcm} = 2（次）。`)
     );
   }

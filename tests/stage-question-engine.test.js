@@ -175,6 +175,35 @@ test("質數與合數的因數選擇題只有一個非平凡因數選項", () =>
   }
 });
 
+test("公因數與公倍數選擇題依題意驗證，每題只有一個語意正解", () => {
+  const cases = [
+    {
+      topic: "公因數",
+      pattern: /同時整除 (\d+) 和 (\d+)/,
+      satisfies: (choice, left, right) => left % choice === 0 && right % choice === 0,
+    },
+    {
+      topic: "公倍數",
+      pattern: /同時是 (\d+) 和 (\d+) 的倍數/,
+      satisfies: (choice, left, right) => choice % left === 0 && choice % right === 0,
+    },
+  ];
+  for (const { topic, pattern, satisfies } of cases) {
+    const stage = COURSE_STAGES.find((item) => item.topic === topic);
+    for (const difficulty of STAGE_DIFFICULTIES) {
+      for (const question of generateStageQuestionPool(stage.id, difficulty, 50)) {
+        const match = question.prompt.match(pattern);
+        if (!match || question.type !== "choice" || question.choices.every((choice) => ["正確", "不正確"].includes(choice))) continue;
+        const [, leftText, rightText] = match;
+        const left = Number(leftText);
+        const right = Number(rightText);
+        const correctChoices = question.choices.filter((choice) => satisfies(Number(choice), left, right));
+        assert.deepEqual(correctChoices, [question.answer], `${question.id}: ${question.choices.join("、")}`);
+      }
+    }
+  }
+});
+
 test("學生題幹不顯示內部難度與 operation 標籤，分數生活題份數為整數", () => {
   const fractionLifeStage = COURSE_STAGES.find((item) => item.unitId === "kx-unit2" && item.topic === "生活應用");
   for (const stage of COURSE_STAGES) {
