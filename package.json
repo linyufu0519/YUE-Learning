@@ -6,6 +6,7 @@
   "description": "翰林版國小六年級數學離線學習站（純前端，無需後端）",
   "scripts": {
     "test": "node --test tests/",
-    "start": "python -m http.server 8080"
+    "start": "python -m http.server 8080",
+    "import:candidates": "node scripts/import-candidate-bank.mjs"
   }
 }

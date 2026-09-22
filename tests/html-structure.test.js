@@ -12,6 +12,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const indexHtml = readFileSync(path.join(__dirname, "../index.html"), "utf8");
 const parentHtml = readFileSync(path.join(__dirname, "../parent.html"), "utf8");
 const practiceHtml = readFileSync(path.join(__dirname, "../practice.html"), "utf8");
+const practiceJs = readFileSync(path.join(__dirname, "../js/practice.js"), "utf8");
 
 test("首頁：等級獎品入口按鈕位於每日獎勵卡（badge-list 之後、reward-card 結束之前）", () => {
   const rewardCardMatch = indexHtml.match(/<div class="card reward-card">([\s\S]*?)<\/div>\s*<div class="card">/);
@@ -68,4 +69,9 @@ test("首頁、練習頁與家長頁的可見 HTML 不顯示星星文字或圖�
   for (const html of [indexHtml, practiceHtml, parentHtml]) {
     assert.doesNotMatch(html, /星星|🌟|⭐/);
   }
+});
+
+test("練習頁不再提供或顯示難度選擇", () => {
+  assert.doesNotMatch(practiceHtml, /ddl-difficulty|difficulty-panel|練習難度|智慧練習|基礎|進階|挑戰/);
+  assert.doesNotMatch(practiceJs, /selectedDifficulty|params\.get\("difficulty"\)|DIFFICULTY_LABELS|difficultyLabel/);
 });

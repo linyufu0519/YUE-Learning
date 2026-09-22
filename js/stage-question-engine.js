@@ -6,7 +6,6 @@ export const STAGE_DIFFICULTIES = Object.freeze(["easy", "medium", "hard"]);
 const PEOPLE = Object.freeze(["小玥", "小安", "志明", "雅婷", "老師", "爸爸", "媽媽", "店長"]);
 const OBJECTS = Object.freeze(["積木", "卡片", "貼紙", "餅乾"]);
 const PLACES = Object.freeze(["校園", "公園", "文具店", "圖書館", "運動場", "園遊會"]);
-const LEVEL_LABEL = Object.freeze({ easy: "直接計算", medium: "反推與換算", hard: "生活應用與挑戰" });
 const COGNITIVE_MODES = Object.freeze(["solve", "select", "verify"]);
 
 function hashSeed(text) {
@@ -59,6 +58,14 @@ function divisors(value) {
     if (value % divisor === 0) result.push(divisor);
   }
   return result;
+}
+
+function nonFactorChoices(value, answer, count = 3) {
+  const choices = [];
+  for (let candidate = 2; candidate < value && choices.length < count; candidate += 1) {
+    if (candidate !== answer && value % candidate !== 0) choices.push(candidate);
+  }
+  return choices;
 }
 
 function round(value, digits = 2) {
@@ -403,16 +410,18 @@ function factorGenerator(topic, operationKey, difficulty, variant, v) {
   if (topic === "質數與合數") {
     const composite = v.n * (v.b + 1);
     const factorList = divisors(composite);
-    const nonFactor = [2, 3, 5, 7, 11, 13].find((value) => composite % value !== 0) || composite + 1;
+    const factor = factorList.find((value) => value > 1 && value < composite);
+    const distractors = nonFactorChoices(composite, factor);
+    const factorChoices = [String(factor), ...distractors.map(String)];
     const hardQuestions = [
-      () => result(operationKey, "choice", `${v.person}有 ${composite} 個積木，想平均分成每組至少 2 個。下列哪個每組數量可剛好分完，並能證明 ${composite} 是合數？`, v.n, "找一個大於 1、且小於原數的因數。", `${composite} ÷ ${v.n} = ${v.b + 1}，因此 ${v.n} 是非平凡因數，${composite} 是合數。`, [String(v.n), String(nonFactor), String(nonFactor + 2), String(composite - 1)]),
+      () => result(operationKey, "choice", `${v.person}有 ${composite} 個積木，想平均分成每組至少 2 個。下列哪個每組數量可剛好分完，並能證明 ${composite} 是合數？`, factor, "找一個大於 1、且小於原數的因數。", `${composite} ÷ ${factor} = ${composite / factor}，因此 ${factor} 是非平凡因數，${composite} 是合數。`, factorChoices),
       () => result(operationKey, "input", `${composite} 的所有因數共有幾個？請先列出因數，再判斷它不是質數。`, factorList.length, "成對尋找能整除原數的數。", `${composite} 的因數是 ${factorList.join("、")}，共有 ${factorList.length} 個；因數超過 2 個，所以是合數。`),
-      () => result(operationKey, "choice", `有人說「${composite} 是質數」。下列哪個反例因數能證明這個說法錯誤？`, v.n, "只要找到一個不是 1 或原數的因數，就能否定質數說法。", `${composite} ÷ ${v.n} = ${v.b + 1}，所以 ${v.n} 是反例因數。`, [String(v.n), String(nonFactor), "1", String(composite)])
+      () => result(operationKey, "choice", `有人說「${composite} 是質數」。下列哪個反例因數能證明這個說法錯誤？`, factor, "只要找到一個不是 1 或原數的因數，就能否定質數說法。", `${composite} ÷ ${factor} = ${composite / factor}，所以 ${factor} 是反例因數。`, factorChoices)
     ];
     return complexity(
       difficulty,
-      () => result(operationKey, "choice", `${composite} 可寫成 ${v.n} × ${v.b + 1}，所以它是質數還是合數？`, "合數", "可以寫成兩個大於 1 的整數相乘，就是合數。", `${composite} = ${v.n} × ${v.b + 1}，所以是合數。`, ["質數", "合數"]),
-      () => result(operationKey, "choice", `某合數等於 ${v.n} × ${v.b + 1}，下列何者一定是它的因數？`, v.n, "乘法式中的乘數都是因數。", `${composite} ÷ ${v.n} = ${v.b + 1}。`, [String(v.n), String(v.n + 1), String(v.n + 2), String(v.n + 3)]),
+      () => result(operationKey, "choice", `判斷 ${composite} 是質數還是合數。`, "合數", "從 2 開始試除；只要找到一個非平凡因數，就是合數。", `${composite} ÷ ${factor} = ${composite / factor}，所以 ${composite} 是合數。`, ["質數", "合數"]),
+      () => result(operationKey, "choice", `下列哪個數是 ${composite} 大於 1 且小於自己的因數？`, factor, "逐一試除，只有能整除且沒有餘數的選項才是因數。", `${composite} ÷ ${factor} = ${composite / factor}，所以答案是 ${factor}。`, factorChoices),
       hardQuestions[variant]
     );
   }
@@ -504,7 +513,10 @@ function fractionGenerator(topic, operationKey, difficulty, variant, v) {
       () => result(operationKey, "input", `${numerator}/${d1} ÷ ${divisorNumerator}/${d2} = ？（兩分母不同）`, answer, "除以分數要乘以倒數。", `${numerator}/${d1} × ${d2}/${divisorNumerator} = ${answer}。`),
       () => result(operationKey, "input", `□ ÷ ${divisorNumerator}/${d2} = ${answer}，原分數的分母是 ${d1}，分子是多少？`, numerator, "商乘除數還原被除數。", `${answer} × ${divisorNumerator}/${d2} = ${frac(numerator, d1)}。`),
       () => {
-        return result(operationKey, "input", `${v.person}有 ${frac(numerator, d1)} 公斤麵粉，每份用 ${frac(divisorNumerator, d2)} 公斤，可以分成幾份？`, answer, "總重量除以每份重量。", `${frac(numerator, d1)} ÷ ${frac(divisorNumerator, d2)} = ${answer}。`);
+        const portions = integer;
+        const portionSize = frac(divisorNumerator, d2);
+        const totalAmount = frac(divisorNumerator * portions, d2);
+        return result(operationKey, "input", `${v.person}有 ${totalAmount} 公斤麵粉，每份用 ${portionSize} 公斤，可以分成幾份？`, portions, "總重量除以每份重量。", `${totalAmount} ÷ ${portionSize} = ${portions}。`);
       }
     );
   }
@@ -584,15 +596,16 @@ function relationGenerator(topic, operationKey, difficulty, variant, v) {
 function decimalGenerator(topic, operationKey, difficulty, variant, v) {
   const integer = v.n;
   const divisorInteger = v.b;
-  const decimalDivisor = round(v.b / 10);
+  const decimalDivisor = round(((v.b % 9) + 1) / 10);
   const quotient = round(v.n / 10);
   if (topic === "整數除以小數") {
     const answer = integer * 10 / v.b;
     return decimalDivisionSet(topic, operationKey, difficulty, v, integer, decimalDivisor, answer);
   }
   if (topic === "小數除以整數") {
-    const dividend = round(quotient * divisorInteger);
-    return decimalDivisionSet(topic, operationKey, difficulty, v, dividend, divisorInteger, quotient);
+    const dividend = round(integer + decimalDivisor);
+    const decimalQuotient = round(dividend / divisorInteger);
+    return decimalDivisionSet(topic, operationKey, difficulty, v, dividend, divisorInteger, decimalQuotient);
   }
   if (topic === "小數除以小數") {
     const dividend = round(quotient * decimalDivisor);
@@ -632,11 +645,16 @@ function decimalGenerator(topic, operationKey, difficulty, variant, v) {
 function decimalDivisionSet(topic, operationKey, difficulty, v, dividend, divisor, quotient) {
   const bottleCount = v.n + v.b;
   const applicationTotal = round(divisor * bottleCount);
+  const application = topic === "小數除以整數"
+    ? () => result(operationKey, "input", `${v.person}把 ${dividend} 公斤餅乾平均分成 ${divisor} 份，每份重多少公斤？`, quotient, "小數總重量除以整數份數。", `${dividend} ÷ ${divisor} = ${quotient}。`)
+    : topic === "小數除以小數"
+      ? () => result(operationKey, "input", `${v.person}有 ${dividend} 公升果汁，每瓶裝 ${divisor} 公升，可以裝滿幾瓶？`, quotient, "小數總量除以每瓶的小數容量。", `${dividend} ÷ ${divisor} = ${quotient}。`)
+      : () => result(operationKey, "input", `${v.person}有 ${applicationTotal} 公升果汁，每瓶裝 ${divisor} 公升，可以裝滿幾瓶？`, bottleCount, "果汁總量除以每瓶容量。", `${applicationTotal} ÷ ${divisor} = ${bottleCount}。`);
   return complexity(
     difficulty,
     () => result(operationKey, "input", `${topic}：${dividend} ÷ ${divisor} = ？`, quotient, "同時移動被除數與除數的小數點，直到除數為整數。", `${dividend} ÷ ${divisor} = ${quotient}。`),
     () => result(operationKey, "input", `${topic}反推：□ ÷ ${divisor} = ${quotient}，□ 是多少？`, dividend, "商乘除數可還原被除數。", `${quotient} × ${divisor} = ${dividend}。`),
-    () => result(operationKey, "input", `${v.person}有 ${applicationTotal} 公升果汁，每瓶裝 ${divisor} 公升，可以裝滿幾瓶？`, bottleCount, "果汁總量除以每瓶容量。", `${applicationTotal} ÷ ${divisor} = ${bottleCount}。`)
+    application
   );
 }
 
@@ -979,7 +997,7 @@ function buildQuestion(stage, difficulty, index, generated, rng) {
     difficulty,
     concept: `${stage.topic}｜${generated.concept}`,
     type: generated.type,
-    prompt: `【${LEVEL_LABEL[difficulty]}｜${stage.topic}】${generated.prompt}`,
+    prompt: generated.prompt,
     answer,
     hint: generated.hint,
     explanation: generated.explanation,
@@ -1031,17 +1049,11 @@ export function generateStageQuestionPool(stageId, difficulty = "easy", count = 
   return questions;
 }
 
-export function selectStageQuestions({ stageId, difficulty = "easy", count = 10, recentQuestionIds = [], rng = Math.random }) {
+export function selectStageQuestions({ stageId, count = 10, recentQuestionIds = [], rng = Math.random }) {
   if (!Number.isInteger(count) || count < 1) throw new RangeError("count 必須是正整數。");
   if (typeof rng !== "function") throw new TypeError("rng 必須是函式。");
   const recent = new Set(recentQuestionIds);
-  const weightsByTarget = {
-    easy: { easy: 6, medium: 3, hard: 1 },
-    medium: { easy: 3, medium: 4, hard: 3 },
-    hard: { easy: 1, medium: 3, hard: 6 },
-  };
-  const weights = weightsByTarget[difficulty];
-  if (!weights) throw new RangeError(`不支援的難度：${difficulty}`);
+  const weights = { easy: 3, medium: 4, hard: 3 };
   const allocation = allocateDifficultyCounts(count, weights);
   const selected = [];
   for (const level of STAGE_DIFFICULTIES) {

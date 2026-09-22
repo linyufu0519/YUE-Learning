@@ -44,7 +44,8 @@
       const doc = frame.contentDocument;
       const stage = stages[verified.length];
       const prompt = doc.querySelector(".question-prompt")?.textContent || "";
-      if (!prompt.includes(stage.topic)) {
+      const title = doc.getElementById("unit-title")?.textContent || "";
+      if (!prompt || !title.includes(stage.topic)) {
         document.getElementById("result").textContent =
           `stage-browser=failed:${stage.id}:${prompt}`;
         return;

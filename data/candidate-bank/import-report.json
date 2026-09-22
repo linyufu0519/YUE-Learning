@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "sourceFileName": "6779e7b0-75a6-4149-b3a9-d33fae9c4b2b-國小六年級數學_六上每日題庫_第1-9單元與總複習.pdf",
+  "sourceMetadata": {
+    "source": "parent-provided-pdf",
+    "sourceTitle": "國小六年級數學｜六上每日練習題庫",
+    "license": "家長提供的候選內容／內部草稿",
+    "status": "quality-review-required"
+  },
+  "extraction": {
+    "usable": false,
+    "visibleCharacters": 4000,
+    "cjkCharacters": 0,
+    "cjkRatio": 0,
+    "suspiciousCharacters": 71,
+    "suspiciousRatio": 0.0177,
+    "reason": "blocked-garbled-or-missing-cjk"
+  },
+  "counts": {
+    "cataloguedCandidates": 122,
+    "approved": 0,
+    "rejected": 0,
+    "needsReview": 122,
+    "studentVisible": 0
+  },
+  "sections": [
+    {
+      "unitId": "kx-unit1",
+      "label": "第1單元",
+      "candidateCount": 12
+    },
+    {
+      "unitId": "kx-unit2",
+      "label": "第2單元",
+      "candidateCount": 12
+    },
+    {
+      "unitId": "kx-unit3",
+      "label": "第3單元",
+      "candidateCount": 12
+    },
+    {
+      "unitId": "kx-unit4",
+      "label": "第4單元",
+      "candidateCount": 12
+    },
+    {
+      "unitId": "kx-unit5",
+      "label": "第5單元",
+      "candidateCount": 12
+    },
+    {
+      "unitId": "kx-review1",
+      "label": "複習（一）",
+      "candidateCount": 10
+    },
+    {
+      "unitId": "kx-unit6",
+      "label": "第6單元",
+      "candidateCount": 10
+    },
+    {
+      "unitId": "kx-unit7",
+      "label": "第7單元",
+      "candidateCount": 10
+    },
+    {
+      "unitId": "kx-unit8",
+      "label": "第8單元",
+      "candidateCount": 10
+    },
+    {
+      "unitId": "kx-unit9",
+      "label": "第9單元",
+      "candidateCount": 10
+    },
+    {
+      "unitId": "kx-review2",
+      "label": "複習（二）與總複習",
+      "candidateCount": 12
+    }
+  ],
+  "importDecision": "blocked-before-question-import"
+}

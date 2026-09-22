@@ -16,6 +16,10 @@ function fixedRng(values) {
   return () => values[position++ % values.length];
 }
 
+function mathematicallyCorrect(question, choice) {
+  return gradeAnswer({ ...question, type: "input" }, choice);
+}
+
 const OPERATION_EVIDENCE = {
   "質數與合數": /因數|合數/,
   質因數分解: /分解|因數/,
@@ -50,9 +54,9 @@ const OPERATION_EVIDENCE = {
   比值: /比值|前項/,
   相等的比: /化簡|同乘|最簡比/,
   最簡整數比: /化簡|最簡比/,
-  比的化簡: /化為整數比|化簡/,
+  比的化簡: /化為整數比|化簡|最簡比/,
   連比: /：.+：|三項|三份/,
-  圓周率: /圓周長.+直徑|圓周率/,
+  圓周率: /圓周長.+直徑|圓周率|3\.14/,
   直徑與半徑: /直徑|半徑/,
   圓周長: /圓周長|一圈周長/,
   扇形弧長: /弧長/,
@@ -144,12 +148,46 @@ test("所有 hard 題由生成器產生單一完整情境，不再拼接第二�
   }
 });
 
-test("質數與合數 hard 題以因數證據判斷，不以無關總數計算或明示排列洩漏答案", () => {
+test("質數與合數所有難度都要求主動判斷因數，不在題幹洩漏乘法分解", () => {
   const stage = COURSE_STAGES.find((item) => item.topic === "質數與合數");
-  for (let index = 0; index < 50; index += 1) {
-    const question = generateStageQuestion(stage.id, "hard", index);
-    assert.match(`${question.prompt} ${question.hint} ${question.explanation}`, /因數|整除|剛好分完/);
-    assert.doesNotMatch(question.prompt, /先排好|再多排|一共是|可寫成 \d+ × \d+，所以/);
+  for (const difficulty of STAGE_DIFFICULTIES) {
+    for (let index = 0; index < 50; index += 1) {
+      const question = generateStageQuestion(stage.id, difficulty, index);
+      assert.match(`${question.prompt} ${question.hint} ${question.explanation}`, /因數|整除|剛好分完/);
+      assert.doesNotMatch(question.prompt, /先排好|再多排|一共是|可寫成 \d+ × \d+|等於 \d+ × \d+/);
+    }
+  }
+});
+
+test("質數與合數的因數選擇題只有一個非平凡因數選項", () => {
+  const stage = COURSE_STAGES.find((item) => item.topic === "質數與合數");
+  for (const difficulty of STAGE_DIFFICULTIES) {
+    for (const question of generateStageQuestionPool(stage.id, difficulty, 50)) {
+      if (question.type !== "choice" || !/哪個.+(?:因數|剛好分完)/.test(question.prompt)) continue;
+      if (question.choices.every((choice) => ["正確", "不正確"].includes(choice))) continue;
+      const value = Number(question.prompt.match(/\d+/)?.[0]);
+      const validChoices = question.choices.filter((choice) => {
+        const candidate = Number(choice);
+        return Number.isInteger(candidate) && candidate > 1 && candidate < value && value % candidate === 0;
+      });
+      assert.deepEqual(validChoices, [question.answer], `${question.id}: ${question.choices.join("、")}`);
+    }
+  }
+});
+
+test("學生題幹不顯示內部難度與 operation 標籤，分數生活題份數為整數", () => {
+  const fractionLifeStage = COURSE_STAGES.find((item) => item.unitId === "kx-unit2" && item.topic === "生活應用");
+  for (const stage of COURSE_STAGES) {
+    for (const difficulty of STAGE_DIFFICULTIES) {
+      for (const question of generateStageQuestionPool(stage.id, difficulty, 50)) {
+        assert.doesNotMatch(question.prompt, /^【.+｜.+】/);
+      }
+    }
+  }
+  for (const question of generateStageQuestionPool(fractionLifeStage.id, "hard", 50)) {
+    if (/可以裝成幾份/.test(question.prompt) && question.type === "input") {
+      assert.equal(Number.isInteger(Number(question.answer)), true, question.id);
+    }
   }
 });
 
@@ -251,7 +289,7 @@ test("每關每難度有 50 組唯一 prompt+answer，且同 index 完全穩定"
         assert.equal(gradeAnswer(question, question.answer), true);
         assert.ok(!/^-|Infinity|NaN/.test(question.answer), `${question.id} 產生非法答案`);
         if (question.type === "choice") {
-          assert.equal(question.choices.filter((choice) => choice === question.answer).length, 1);
+          assert.equal(question.choices.filter((choice) => mathematicallyCorrect(question, choice)).length, 1);
           assert.equal(new Set(question.choices).size, question.choices.length);
         }
       }
@@ -271,9 +309,9 @@ test("難度結構、payload schema、選擇題唯一正解皆維持相容", () 
     const easy = generateStageQuestion(stage.id, "easy", 0);
     const medium = generateStageQuestion(stage.id, "medium", 0);
     const hard = generateStageQuestion(stage.id, "hard", 0);
-    assert.match(easy.prompt, /直接計算/);
-    assert.match(medium.prompt, /反推與換算/);
-    assert.match(hard.prompt, /生活應用與挑戰/);
+    assert.equal(easy.difficulty, "easy");
+    assert.equal(medium.difficulty, "medium");
+    assert.equal(hard.difficulty, "hard");
     assert.notEqual(easy.prompt.replace(/\d+(?:\.\d+)?/g, "#"), medium.prompt.replace(/\d+(?:\.\d+)?/g, "#"));
     assert.notEqual(medium.prompt.replace(/\d+(?:\.\d+)?/g, "#"), hard.prompt.replace(/\d+(?:\.\d+)?/g, "#"));
     for (const question of [easy, medium, hard]) {
@@ -281,7 +319,7 @@ test("難度結構、payload schema、選擇題唯一正解皆維持相容", () 
       assert.equal(gradeAnswer(question, question.answer), true);
       assert.ok(!/Infinity|NaN/.test(question.answer));
       if (question.type === "choice") {
-        assert.equal(question.choices.filter((choice) => choice === question.answer).length, 1);
+        assert.equal(question.choices.filter((choice) => mathematicallyCorrect(question, choice)).length, 1);
         assert.equal(new Set(question.choices).size, question.choices.length);
       }
     }
@@ -299,7 +337,7 @@ test("同單元不同 stage 的 operation 與題目結構不高度相同", () =>
     const operationSignatures = stages.map((stage) => STAGE_STRATEGY_METADATA[stage.id].operationKeys.join("|"));
     assert.ok(new Set(operationSignatures).size >= Math.ceil(stages.length * 0.6), `${stages[0].unitId} operation 過度重複`);
     const promptSignatures = stages.map((stage) =>
-      generateStageQuestion(stage.id, "medium", 0).prompt.replace(/\d+(?:\.\d+)?/g, "#")
+      `${generateStageQuestion(stage.id, "medium", 0).concept}|${generateStageQuestion(stage.id, "medium", 0).prompt.replace(/\d+(?:\.\d+)?/g, "#")}`
     );
     assert.ok(new Set(promptSignatures).size >= Math.ceil(stages.length * 0.6), `${stages[0].unitId} 題目結構過度重複`);
   }
@@ -307,10 +345,9 @@ test("同單元不同 stage 的 operation 與題目結構不高度相同", () =>
 
 test("每次抽取 10 題不重複，且優先避開最近出題", () => {
   for (const stage of COURSE_STAGES) {
-    const first = selectStageQuestions({ stageId: stage.id, difficulty: "medium", count: 10, rng: fixedRng([0, 0.7, 0.2]) });
+    const first = selectStageQuestions({ stageId: stage.id, count: 10, rng: fixedRng([0, 0.7, 0.2]) });
     const second = selectStageQuestions({
       stageId: stage.id,
-      difficulty: "medium",
       count: 10,
       recentQuestionIds: first.map((question) => question.id),
       rng: fixedRng([0, 0.7, 0.2]),
@@ -321,41 +358,33 @@ test("每次抽取 10 題不重複，且優先避開最近出題", () => {
   }
 });
 
-test("使用者體驗驗收：79 關每組 10 題具認知操作配額，不是只換數字", () => {
+test("使用者體驗驗收：79 關固定混合題組具認知操作配額，不依賴學生選難度", () => {
   for (const stage of COURSE_STAGES) {
-    for (const difficulty of STAGE_DIFFICULTIES) {
-      const questions = selectStageQuestions({
-        stageId: stage.id,
-        difficulty,
-        count: 10,
-        rng: fixedRng([0.13, 0.79, 0.41, 0.92, 0.27]),
-      });
-      const fingerprints = questions.map(getQuestionStructureFingerprint);
-      const operationModes = questions.map((question) => question.concept.split("［")[0].split("｜").at(-1));
-      const cognitiveModes = operationModes.map((key) => key.split(":").at(-1));
-      const difficultyCounts = Object.fromEntries(STAGE_DIFFICULTIES.map((level) => [
-        level,
-        questions.filter((question) => question.difficulty === level).length,
-      ]));
-      assert.equal(questions.length, 10);
-      assert.ok(new Set(fingerprints).size >= 6, `${stage.id}/${difficulty} 結構指紋不足`);
-      assert.ok(new Set(operationModes).size >= 6, `${stage.id}/${difficulty} 操作模板不足`);
-      assert.ok(new Set(cognitiveModes).size >= 3, `${stage.id}/${difficulty} 認知操作不足`);
-      assert.ok(new Set(questions.map((question) => question.type)).size >= 2, `${stage.id}/${difficulty} 作答型態不足`);
-      assert.ok(STAGE_DIFFICULTIES.every((level) => difficultyCounts[level] > 0), `${stage.id}/${difficulty} 缺少難度層次`);
-      assert.equal(
-        difficultyCounts[difficulty],
-        Math.max(...Object.values(difficultyCounts)),
-        `${stage.id}/${difficulty} 未以所選難度為主`
-      );
-      assert.ok(questions.some((question) => question.prompt.includes("再判斷答案")), `${stage.id}/${difficulty} 缺少判斷題`);
-      assert.ok(questions.some((question) => question.prompt.includes("請選出正確答案")), `${stage.id}/${difficulty} 缺少選擇轉換題`);
-      assert.ok(questions.some((question) => !/再判斷答案|請選出正確答案/.test(question.prompt)), `${stage.id}/${difficulty} 缺少原始解題`);
-      assert.ok(
-        questions.every((question) => !question.choices?.some((choice) => /NaN|Infinity/.test(choice))),
-        `${stage.id}/${difficulty} 選項含非法數值`
-      );
-    }
+    const questions = selectStageQuestions({
+      stageId: stage.id,
+      count: 10,
+      rng: fixedRng([0.13, 0.79, 0.41, 0.92, 0.27]),
+    });
+    const fingerprints = questions.map(getQuestionStructureFingerprint);
+    const operationModes = questions.map((question) => question.concept.split("［")[0].split("｜").at(-1));
+    const cognitiveModes = operationModes.map((key) => key.split(":").at(-1));
+    const difficultyCounts = Object.fromEntries(STAGE_DIFFICULTIES.map((level) => [
+      level,
+      questions.filter((question) => question.difficulty === level).length,
+    ]));
+    assert.equal(questions.length, 10);
+    assert.ok(new Set(fingerprints).size >= 6, `${stage.id} 結構指紋不足`);
+    assert.ok(new Set(operationModes).size >= 6, `${stage.id} 操作模板不足`);
+    assert.ok(new Set(cognitiveModes).size >= 3, `${stage.id} 認知操作不足`);
+    assert.ok(new Set(questions.map((question) => question.type)).size >= 2, `${stage.id} 作答型態不足`);
+    assert.deepEqual(difficultyCounts, { easy: 3, medium: 4, hard: 3 });
+    assert.ok(questions.some((question) => question.prompt.includes("再判斷答案")), `${stage.id} 缺少判斷題`);
+    assert.ok(questions.some((question) => question.prompt.includes("請選出正確答案")), `${stage.id} 缺少選擇轉換題`);
+    assert.ok(questions.some((question) => !/再判斷答案|請選出正確答案/.test(question.prompt)), `${stage.id} 缺少原始解題`);
+    assert.ok(
+      questions.every((question) => !question.choices?.some((choice) => /NaN|Infinity/.test(choice))),
+      `${stage.id} 選項含非法數值`
+    );
   }
 });
 

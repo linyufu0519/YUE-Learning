@@ -17,7 +17,6 @@ import {
   recordPracticeSessionResult,
 } from "./storage.js";
 import {
-  DIFFICULTY_LABELS,
   PRACTICE_QUESTION_COUNT,
   selectPracticeQuestions,
 } from "./question-engine.js";
@@ -38,7 +37,6 @@ const unit = resolved.unit;
 // 但學習紀錄（recordAnswer/getUnitSummary/getRecentQuestionIds）仍以畫面上的 unitId 為準，
 // 讓兩個版本的進度分開累計，不互相污染。
 const bankKey = unit ? getPracticeBankKey(version, unit.id) : null;
-let selectedDifficulty = params.get("difficulty") || "smart";
 let questions = [];
 
 const questionArea = document.getElementById("question-area");
@@ -46,7 +44,6 @@ const summaryArea = document.getElementById("summary-area");
 const progressLabel = document.getElementById("progress-label");
 const progressBar = document.getElementById("practice-progress-bar");
 const liveAccuracy = document.getElementById("live-accuracy");
-const difficultyPanel = document.getElementById("difficulty-panel");
 
 let currentIndex = 0;
 let sessionCorrect = 0;
@@ -68,11 +65,6 @@ if (reviewMode) {
   document.title = `${stage?.topic || unit.title} | 林小玥六年級數學學習站`;
   const subtitleEl = document.querySelector(".subtitle");
   if (subtitleEl) subtitleEl.textContent = `${getVersionLabel(version)}．國小六年級`;
-  document.getElementById("ddl-difficulty").value = selectedDifficulty;
-  document.getElementById("ddl-difficulty").addEventListener("change", (event) => {
-    selectedDifficulty = event.target.value;
-    startPractice();
-  });
   document.getElementById("btn-restart-practice").addEventListener("click", startPractice);
   startPractice();
 }
@@ -82,7 +74,7 @@ function setupWrongReview() {
   document.title = "錯題複習 | 林小玥六年級數學學習站";
   const subtitleEl = document.querySelector(".subtitle");
   if (subtitleEl) subtitleEl.textContent = `${getVersionLabel(version)}．重新答對，真正學會`;
-  difficultyPanel.hidden = true;
+  document.getElementById("btn-restart-practice").hidden = true;
   renderWrongReviewList();
 }
 
@@ -156,7 +148,6 @@ function startPractice() {
     const stats = getSemesterProgress().stageStats?.[stage.id];
     questions = selectStageQuestions({
       stageId: stage.id,
-      difficulty: selectedDifficulty === "smart" ? "medium" : selectedDifficulty,
       count: PRACTICE_QUESTION_COUNT,
       recentQuestionIds: stats?.recentQuestionIds || [],
     });
@@ -171,7 +162,7 @@ function startPractice() {
   const summary = getUnitSummary(unit.id, total, version);
   questions = selectPracticeQuestions({
     unitId: bankKey,
-    difficulty: selectedDifficulty,
+    difficulty: "smart",
     count: PRACTICE_QUESTION_COUNT,
     recentQuestionIds: getRecentQuestionIds(unit.id),
     summary,
@@ -186,8 +177,7 @@ function startPractice() {
 function renderQuestion() {
   answeredCurrent = false;
   const q = questions[currentIndex];
-  const difficultyLabel = DIFFICULTY_LABELS[q.selectedDifficulty || q.difficulty] || "練習";
-  progressLabel.textContent = `第 ${currentIndex + 1} / ${questions.length} 題（${difficultyLabel}）`;
+  progressLabel.textContent = `第 ${currentIndex + 1} / ${questions.length} 題`;
   progressBar.style.width = `${(currentIndex / questions.length) * 100}%`;
   updateLiveAccuracy();
 

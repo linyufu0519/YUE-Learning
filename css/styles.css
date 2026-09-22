@@ -630,29 +630,6 @@ a {
   margin-bottom: 14px;
 }
 
-.difficulty-panel {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.difficulty-panel[hidden] {
-  display: none;
-}
-
-.difficulty-panel label {
-  font-weight: 700;
-}
-
-.difficulty-panel select {
-  padding: 9px 12px;
-  border: 2px solid #eee0cf;
-  border-radius: 12px;
-  font-size: 0.95rem;
-  background: #fffdf9;
-}
-
 .question-card {
   margin-top: 10px;
 }
