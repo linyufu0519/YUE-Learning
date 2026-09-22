@@ -121,7 +121,7 @@ test("recordPracticeSessionResult 同一天重複全對練習不重複發獎", (
 test("confirmLevelReward 等級已解鎖時家長可確認領取等級獎品", () => {
   resetState();
   const state = loadState();
-  state.rewards.xp = 9 * 120; // 直接設為 10 級，避免測試需要作答上百題
+  state.rewards.xp = 9 * 100; // 直接設為 10 級，避免測試需要作答上百題
   saveState(state);
   const result = confirmLevelReward(10);
   assert.equal(result.ok, true);
@@ -138,10 +138,9 @@ test("confirmLevelReward 尚未解鎖的等級無法確認領取", () => {
 test("confirmLevelReward 同一里程碑不能重複確認領取（避免重複發放零用錢）", () => {
   resetState();
   const state = loadState();
-  state.rewards.xp = 9 * 120;
+  state.rewards.xp = 9 * 100;
   saveState(state);
   confirmLevelReward(10);
   const second = confirmLevelReward(10);
   assert.equal(second.ok, false);
 });
-

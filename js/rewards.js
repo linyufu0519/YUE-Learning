@@ -6,21 +6,21 @@ export const DAILY_MISSIONS = [
   {
     id: "practice-5",
     title: "完成 10 題練習",
-    description: "今天完成任一單元 10 題練習。",
+    description: "今天完成任一單元 10 題練習，可獲得 50 XP＋1 顆星星。",
     target: 10,
-    xp: 30,
+    xp: 50,
   },
   {
     id: "read-lesson",
     title: "閱讀 1 個教學",
-    description: "先學習再練習，觀念更穩。",
+    description: "完成教學閱讀與全部自我檢查，可獲得 25 XP＋1 顆星星。",
     target: 1,
-    xp: 20,
+    xp: 25,
   },
   {
     id: "fix-wrong",
     title: "全部答對或修正錯題",
-    description: "今天有一次練習全對，或是把錯題重新答對，都可以完成！",
+    description: "今天有一次練習全對，或把錯題重新答對，可獲得 25 XP＋1 顆星星。",
     target: 1,
     xp: 25,
   },
@@ -102,10 +102,12 @@ export function normalizeDaily(daily = {}, date = todayString()) {
   };
 }
 
+export const XP_PER_LEVEL = 100;
+
 export function getLevelInfo(xp = 0) {
-  const level = Math.floor(xp / 120) + 1;
-  const currentLevelXp = (level - 1) * 120;
-  const nextLevelXp = level * 120;
+  const level = Math.floor(xp / XP_PER_LEVEL) + 1;
+  const currentLevelXp = (level - 1) * XP_PER_LEVEL;
+  const nextLevelXp = level * XP_PER_LEVEL;
   const title =
     level >= 8 ? "數學小博士" : level >= 5 ? "解題高手" : level >= 3 ? "分數探險家" : "學習新星";
   return {
@@ -113,7 +115,7 @@ export function getLevelInfo(xp = 0) {
     title,
     currentLevelXp,
     nextLevelXp,
-    progress: Math.min(100, Math.round(((xp - currentLevelXp) / 120) * 100)),
+    progress: Math.min(100, Math.round(((xp - currentLevelXp) / XP_PER_LEVEL) * 100)),
   };
 }
 
@@ -248,10 +250,8 @@ export function recordRecentQuestion(rewards, unitId, questionId, max = 12) {
 export function applyAnswerReward(rewards, { unitId, questionId, isCorrect, fixedWrong = false }) {
   rewards.daily = normalizeDaily(rewards.daily);
   rewards.daily.practiceCount += 1;
-  rewards.xp += isCorrect ? 10 : 3;
   if (fixedWrong) {
     rewards.daily.wrongFixedCount += 1;
-    rewards.xp += 12;
   }
   recordRecentQuestion(rewards, unitId, questionId);
   const missions = completeMissions(rewards);
@@ -300,7 +300,6 @@ export function applyLessonReward(rewards, unitId, date = todayString()) {
   if (firstReadToday) {
     rewards.lessonReads[unitId] = [...reads, date];
     rewards.daily.lessonReadCount += 1;
-    rewards.xp += 15;
   }
   const missions = completeMissions(rewards);
   grantBadges(rewards);
@@ -314,16 +313,21 @@ export function applyLessonReward(rewards, unitId, date = todayString()) {
 }
 
 function buildEncouragement({ isCorrect, fixedWrong, missions }) {
-  if (fixedWrong) return "太棒了！你把錯題修正回來了，這就是進步的證明 ⭐";
-  if (missions.length) return `任務完成：${missions.map((m) => m.title).join("、")}！獲得星星與 XP 🎉`;
-  return isCorrect ? "答對了！穩穩前進，數學力正在升級 🌟" : "沒關係，看看解析再試一次，你會越來越熟 💪";
+  if (missions.length) return buildMissionRewardMessage(missions);
+  if (fixedWrong) return "太棒了！你把錯題修正回來了，這就是進步的證明 🙌";
+  return isCorrect ? "答對了！穩穩前進，數學力正在升級 ✨" : "沒關係，看看解析再試一次，你會越來越熟 💪";
 }
 
 function buildLessonMessage(missions) {
-  if (missions.length) return `教學閱讀完成，也完成每日任務！獲得星星與 XP 📖`;
+  if (missions.length) return `教學閱讀完成！${buildMissionRewardMessage(missions)}`;
   return "已記錄今天的教學閱讀，先懂觀念再練習最有效！";
 }
 
 function buildSessionMissionMessage(missions) {
-  return `太厲害了，這次全部答對！完成任務：${missions.map((m) => m.title).join("、")}，獲得星星與 XP 🎉`;
+  return `太厲害了，這次全部答對！${buildMissionRewardMessage(missions)}`;
+}
+
+function buildMissionRewardMessage(missions) {
+  const xp = missions.reduce((sum, mission) => sum + mission.xp, 0);
+  return `任務完成：${missions.map((m) => m.title).join("、")}！獲得 ${xp} XP 與 ${missions.length} 顆星星 🎉`;
 }

@@ -218,8 +218,8 @@ export function recordLessonRead(unitId) {
 
 /**
  * 一次完整練習（練習頁的一個 session）結束時呼叫，記錄本次是否全部答對，
- * 供「全部答對或修正錯題」每日任務判定。與答對題目時逐題累加 XP 是分開的，
- * 只在整個 session 完成時呼叫一次，不會重複發獎。
+ * 供「全部答對或修正錯題」每日任務判定。只在整個 session 完成時呼叫一次，
+ * XP 與星星僅由每日任務完成時發放，不會重複發獎。
  */
 export function recordPracticeSessionResult(allCorrect) {
   const state = loadState();

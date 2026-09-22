@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  DAILY_MISSIONS,
   applyAnswerReward,
   applyLessonReward,
   applyPracticeSessionReward,
@@ -11,11 +12,12 @@ import {
   getLevelRewardsSummary,
   getMilestoneAmount,
   hasReadLessonBefore,
+  normalizeRewards,
 } from "../js/rewards.js";
 
-test("作答會累積 XP 並推進每日練習任務（目標為 10 題）", () => {
+test("完成 10 題練習只由每日任務發放 50 XP 與 1 顆星星", () => {
   const rewards = defaultRewards();
-  for (let i = 0; i < 10; i += 1) {
+  for (let i = 0; i < 9; i += 1) {
     applyAnswerReward(rewards, {
       unitId: "fraction-multiply",
       questionId: `q-${i}`,
@@ -23,11 +25,46 @@ test("作答會累積 XP 並推進每日練習任務（目標為 10 題）", () 
       fixedWrong: false,
     });
   }
+  assert.equal(rewards.xp, 0);
+  assert.equal(rewards.stars, 0);
+  applyAnswerReward(rewards, {
+    unitId: "fraction-multiply",
+    questionId: "q-9",
+    isCorrect: true,
+    fixedWrong: false,
+  });
   const mission = evaluateMissions(rewards).find((m) => m.id === "practice-5");
   assert.equal(mission.target, 10);
   assert.equal(mission.done, true);
-  assert.ok(rewards.xp >= 100);
-  assert.ok(rewards.stars >= 1);
+  assert.equal(rewards.xp, 50);
+  assert.equal(rewards.stars, 1);
+  applyAnswerReward(rewards, {
+    unitId: "fraction-multiply",
+    questionId: "q-10",
+    isCorrect: true,
+    fixedWrong: false,
+  });
+  assert.equal(rewards.xp, 50);
+  assert.equal(rewards.stars, 1);
+});
+
+test("單題答對或答錯都不直接增加 XP 與星星", () => {
+  const rewards = defaultRewards();
+  const correct = applyAnswerReward(rewards, {
+    unitId: "fraction-multiply",
+    questionId: "q-correct",
+    isCorrect: true,
+  });
+  const wrong = applyAnswerReward(rewards, {
+    unitId: "fraction-multiply",
+    questionId: "q-wrong",
+    isCorrect: false,
+  });
+  assert.equal(rewards.xp, 0);
+  assert.equal(rewards.stars, 0);
+  for (const message of [correct.message, wrong.message]) {
+    assert.doesNotMatch(message, /XP|星星|⭐|🌟/);
+  }
 });
 
 test("未滿 10 題練習時，練習任務尚未完成", () => {
@@ -50,20 +87,46 @@ test("閱讀教學會記錄每日任務與 XP", () => {
   assert.equal(result.firstReadToday, true);
   assert.equal(rewards.lessonReads["fraction-divide"].includes("2026-09-21"), true);
   assert.equal(evaluateMissions(rewards).find((m) => m.id === "read-lesson").done, true);
+  assert.equal(rewards.xp, 25);
+  assert.equal(rewards.stars, 1);
 });
 
 test("同一天重複閱讀同單元不重複增加閱讀任務", () => {
   const rewards = defaultRewards();
   applyLessonReward(rewards, "fraction-divide", "2026-09-21");
+  const xpAfterFirst = rewards.xp;
+  const starsAfterFirst = rewards.stars;
   const result = applyLessonReward(rewards, "fraction-divide", "2026-09-21");
   assert.equal(result.firstReadToday, false);
   assert.equal(rewards.daily.lessonReadCount, 1);
+  assert.equal(rewards.xp, xpAfterFirst);
+  assert.equal(rewards.stars, starsAfterFirst);
 });
 
 test("XP 可換算等級與稱號", () => {
-  const info = getLevelInfo(260);
+  const info = getLevelInfo(210);
   assert.equal(info.level, 3);
   assert.equal(info.title, "分數探險家");
+});
+
+test("每累積 100 XP 升一級，等級進度條以 100 XP 為週期", () => {
+  assert.deepEqual(getLevelInfo(0), {
+    level: 1,
+    title: "學習新星",
+    currentLevelXp: 0,
+    nextLevelXp: 100,
+    progress: 0,
+  });
+  assert.equal(getLevelInfo(50).progress, 50);
+  assert.equal(getLevelInfo(99).level, 1);
+  assert.equal(getLevelInfo(100).level, 2);
+  assert.equal(getLevelInfo(100).progress, 0);
+});
+
+test("舊資料的歷史 XP 與星星會原樣保留，不回溯修正", () => {
+  const rewards = normalizeRewards({ xp: 987, stars: 42 });
+  assert.equal(rewards.xp, 987);
+  assert.equal(rewards.stars, 42);
 });
 
 test("hasReadLessonBefore：從未讀過回傳 false", () => {
@@ -84,8 +147,8 @@ test("applyPracticeSessionReward：一次練習全對可以完成「全部答對
   const result = applyPracticeSessionReward(rewards, { allCorrect: true }, "2026-09-22");
   const mission = evaluateMissions(rewards).find((m) => m.id === "fix-wrong");
   assert.equal(mission.done, true);
-  assert.ok(rewards.xp >= 25);
-  assert.ok(rewards.stars >= 1);
+  assert.equal(rewards.xp, 25);
+  assert.equal(rewards.stars, 1);
   assert.ok(result.message.length > 0);
 });
 
@@ -99,6 +162,8 @@ test("applyPracticeSessionReward：修正錯題（既有路徑）仍可完成任
   });
   const mission = evaluateMissions(rewards).find((m) => m.id === "fix-wrong");
   assert.equal(mission.done, true);
+  assert.equal(rewards.xp, 25);
+  assert.equal(rewards.stars, 1);
 });
 
 test("applyPracticeSessionReward：練習未全對時任務尚未完成，也不會提早發獎", () => {
@@ -124,8 +189,38 @@ test("applyPracticeSessionReward：同一天完成過就不會重複發獎（全
     isCorrect: true,
     fixedWrong: true,
   });
-  assert.equal(rewards.xp, xpAfterFirst + 22); // 修正錯題本身仍有 +10（答對）+12（修正）XP，但任務獎勵不重複
+  assert.equal(rewards.xp, xpAfterFirst);
   assert.equal(rewards.stars, starsAfterFirst);
+});
+
+test("每日任務獎勵固定為 50／25／25 XP，且每項都是 1 顆星星", () => {
+  assert.deepEqual(
+    DAILY_MISSIONS.map(({ id, xp }) => ({ id, xp })),
+    [
+      { id: "practice-5", xp: 50 },
+      { id: "read-lesson", xp: 25 },
+      { id: "fix-wrong", xp: 25 },
+    ]
+  );
+});
+
+test("同一天完成全部三項每日任務共得 100 XP，剛好升一級", () => {
+  const rewards = defaultRewards();
+  const date = rewards.daily.date;
+  for (let i = 0; i < 10; i += 1) {
+    applyAnswerReward(rewards, {
+      unitId: "fraction-multiply",
+      questionId: `all-missions-${i}`,
+      isCorrect: true,
+    });
+  }
+  applyPracticeSessionReward(rewards, { allCorrect: true }, date);
+  applyLessonReward(rewards, "fraction-multiply", date);
+
+  assert.equal(rewards.xp, 100);
+  assert.equal(rewards.stars, 3);
+  assert.equal(rewards.daily.completedMissionIds.length, 3);
+  assert.equal(getLevelInfo(rewards.xp).level, 2);
 });
 
 test("等級獎品：里程碑金額依規則計算（10~40及60~90為100元，50與100為500元）", () => {
@@ -148,7 +243,7 @@ test("getLevelRewardsSummary：等級未達門檻時全部里程碑皆未解鎖"
 
 test("getLevelRewardsSummary：剛好達到 10 級時解鎖第一個里程碑，20 級尚未解鎖", () => {
   const rewards = defaultRewards();
-  rewards.xp = 9 * 120; // level 10
+  rewards.xp = 9 * 100; // level 10
   const summary = getLevelRewardsSummary(rewards);
   assert.equal(summary.milestones.find((m) => m.level === 10).unlocked, true);
   assert.equal(summary.milestones.find((m) => m.level === 20).unlocked, false);
@@ -156,7 +251,7 @@ test("getLevelRewardsSummary：剛好達到 10 級時解鎖第一個里程碑，
 
 test("getLevelRewardsSummary：超過 100 級時所有里程碑皆解鎖，且提示已達最高里程碑", () => {
   const rewards = defaultRewards();
-  rewards.xp = 200 * 120;
+  rewards.xp = 200 * 100;
   const summary = getLevelRewardsSummary(rewards);
   assert.equal(summary.milestones.every((m) => m.unlocked), true);
   assert.equal(summary.maxMilestoneLevel, 100);
@@ -177,7 +272,7 @@ test("getLevelRewardsSummary：舊資料沒有 levelRewards 欄位時可自動�
 
 test("confirmLevelRewardMilestone：已解鎖且尚未確認時可成功確認領取", () => {
   const rewards = defaultRewards();
-  rewards.xp = 9 * 120; // level 10
+  rewards.xp = 9 * 100; // level 10
   const result = confirmLevelRewardMilestone(rewards, 10);
   assert.equal(result.ok, true);
   assert.deepEqual(rewards.levelRewards.confirmedMilestones, [10]);
@@ -193,7 +288,7 @@ test("confirmLevelRewardMilestone：尚未解鎖時無法確認領取", () => {
 
 test("confirmLevelRewardMilestone：同一里程碑不能重複確認領取", () => {
   const rewards = defaultRewards();
-  rewards.xp = 9 * 120; // level 10
+  rewards.xp = 9 * 100; // level 10
   confirmLevelRewardMilestone(rewards, 10);
   const second = confirmLevelRewardMilestone(rewards, 10);
   assert.equal(second.ok, false);
@@ -202,12 +297,12 @@ test("confirmLevelRewardMilestone：同一里程碑不能重複確認領取", ()
 
 test("達成新等級里程碑時鼓勵訊息只出現一次，不會重複提示", () => {
   const rewards = defaultRewards();
-  rewards.xp = 9 * 120 - 10; // 差 10 XP 就達到 10 級
+  rewards.xp = 9 * 100 - 25; // 差 25 XP 就達到 10 級
   const first = applyAnswerReward(rewards, {
     unitId: "fraction-multiply",
     questionId: "q-milestone-1",
     isCorrect: true,
-    fixedWrong: false,
+    fixedWrong: true,
   });
   assert.ok(first.message.includes("恭喜達到 Lv.10"));
   const second = applyAnswerReward(rewards, {
@@ -218,5 +313,3 @@ test("達成新等級里程碑時鼓勵訊息只出現一次，不會重複提�
   });
   assert.equal(second.message.includes("恭喜達到 Lv.10"), false);
 });
-
-

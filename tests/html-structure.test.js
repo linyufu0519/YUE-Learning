@@ -11,6 +11,7 @@ import path from "node:path";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const indexHtml = readFileSync(path.join(__dirname, "../index.html"), "utf8");
 const parentHtml = readFileSync(path.join(__dirname, "../parent.html"), "utf8");
+const practiceHtml = readFileSync(path.join(__dirname, "../practice.html"), "utf8");
 
 test("首頁：等級獎品入口按鈕位於每日獎勵卡（badge-list 之後、reward-card 結束之前）", () => {
   const rewardCardMatch = indexHtml.match(/<div class="card reward-card">([\s\S]*?)<\/div>\s*<div class="card">/);
@@ -56,4 +57,10 @@ test("首頁：帳號同步精簡卡片預設隱藏，完整表單預設可見�
 test("首頁：帳號區塊提供「管理帳號與同步」展開入口與收合按鈕", () => {
   assert.match(indexHtml, /id="btn-expand-account"/);
   assert.match(indexHtml, /id="btn-collapse-account"/);
+});
+
+test("首頁、練習頁與家長頁都明確說明 XP／星星僅由每日任務取得", () => {
+  assert.match(indexHtml, /XP 與星星只會在完成每日任務時獲得/);
+  assert.match(practiceHtml, /XP 與星星只在完成每日任務時獲得/);
+  assert.match(parentHtml, /XP 與星星僅由每日任務取得/);
 });
