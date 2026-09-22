@@ -119,7 +119,7 @@ npm test
 node --test tests/
 ```
 
-目前共有 167 項 Node 測試，另有 HTTP 與 Edge headless browser 驗證。涵蓋分數判定、localStorage 相容、教材版本切換、79 關配置、各大項 790 題最低完整作答量、全關卡 easy／medium／hard 各 50 題（共 11850 組抽樣，超過至少 3950 種變化需求）、topic operation contract、各主題生活情境語意契約與輪替、分數／小數／比／圓／速率／比例尺答案不變量、同單元跨關卡題型差異、同次 10 題去重、9900 XP、Lv.100、順序解鎖、重複不發獎、舊 XP 保留、semesterProgress migration／Firebase 聯集合併、首頁四種關卡狀態，以及家長通過 8888 後的 79 關與單元獎勵摘要。雲端同步測試全程使用假資料驗證純函式邏輯，**不會連線到真實 Firebase**。
+目前共有 168 項 Node 測試，另有 HTTP 與 Edge headless browser 驗證。涵蓋分數判定、localStorage 相容、教材版本切換、79 關配置、各大項 790 題最低完整作答量、全關卡 easy／medium／hard 各 50 題（共 11850 組抽樣，超過至少 3950 種變化需求）、topic operation contract、各主題生活情境語意契約與輪替、79 關實際十題的結構指紋與認知操作配額、分數／小數／比／圓／速率／比例尺答案不變量、同單元跨關卡題型差異、同次 10 題去重、9900 XP、Lv.100、順序解鎖、重複不發獎、舊 XP 保留、semesterProgress migration／Firebase 聯集合併、首頁四種關卡狀態，以及家長通過 8888 後的 79 關與單元獎勵摘要。雲端同步測試全程使用假資料驗證純函式邏輯，**不會連線到真實 Firebase**。
 
 另新增錯題複習回歸測試，涵蓋單題／整份重答、答對移除、答錯更新、康軒／翰林版本隔離與空錯題本；並驗證每日任務完成後內部 `rewards.stars` 仍正確累加，但首頁、練習頁及家長頁的可見內容不含星星文字或圖示。
 

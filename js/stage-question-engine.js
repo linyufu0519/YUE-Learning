@@ -7,6 +7,7 @@ const PEOPLE = Object.freeze(["小玥", "小安", "志明", "雅婷", "老師", 
 const OBJECTS = Object.freeze(["彩帶", "果汁", "餅乾", "貼紙", "緞帶", "積木", "盆栽", "卡片"]);
 const PLACES = Object.freeze(["校園", "公園", "文具店", "圖書館", "運動場", "園遊會"]);
 const LEVEL_LABEL = Object.freeze({ easy: "直接計算", medium: "反推與換算", hard: "兩步驟生活應用" });
+const COGNITIVE_MODES = Object.freeze(["solve", "select", "verify"]);
 
 function hashSeed(text) {
   let hash = 2166136261;
@@ -78,9 +79,61 @@ function result(concept, type, prompt, answer, hint, explanation, choices) {
 
 function numericChoices(answer, rng) {
   const correct = Number(answer);
+  if (!Number.isFinite(correct)) {
+    const fractionMatch = String(answer).match(/^(-?\d+)\/(\d+)$/);
+    if (fractionMatch) {
+      const numerator = Number(fractionMatch[1]);
+      const denominator = Number(fractionMatch[2]);
+      return shuffle([
+        String(answer),
+        frac(numerator + 1, denominator),
+        frac(numerator, denominator + 1),
+        frac(numerator + denominator, denominator),
+      ], rng).filter((value, index, values) => values.indexOf(value) === index);
+    }
+    return shuffle([String(answer), `不是${answer}`], rng);
+  }
   const step = Number.isInteger(correct) ? Math.max(1, Math.floor(Math.abs(correct) / 6)) : 0.1;
   const values = [correct, round(correct + step), round(Math.max(0, correct - step)), round(correct + step * 2)];
   return shuffle([...new Set(values.map(format))], rng);
+}
+
+function wrongAnswerFor(generated) {
+  const answer = String(generated.answer);
+  const alternative = generated.choices?.map(String).find((choice) => choice !== answer);
+  if (alternative) return alternative;
+  if (/^-?\d+(?:\.\d+)?$/.test(answer)) {
+    const value = Number(answer);
+    return format(value + (Number.isInteger(value) ? 1 : 0.1));
+  }
+  const fractionMatch = answer.match(/^(-?\d+)\/(\d+)$/);
+  if (fractionMatch) return `${Number(fractionMatch[1]) + 1}/${fractionMatch[2]}`;
+  const opposite = { 質數: "合數", 合數: "質數", 正確: "不正確", 不正確: "正確" };
+  return opposite[answer] || `不是${answer}`;
+}
+
+function applyCognitiveMode(generated, cognitiveMode, index, rng) {
+  const transformed = { ...generated, cognitiveMode };
+  if (cognitiveMode === "solve") {
+    transformed.type = "input";
+    delete transformed.choices;
+    return transformed;
+  }
+  if (cognitiveMode === "select") {
+    transformed.prompt = `請選出正確答案：${generated.prompt}`;
+    transformed.type = "choice";
+    transformed.choices = generated.choices || numericChoices(generated.answer, rng);
+    return transformed;
+  }
+  const proposedAnswer = Math.floor(index / 9) % 2 === 0 ? String(generated.answer) : wrongAnswerFor(generated);
+  const isCorrect = proposedAnswer === String(generated.answer);
+  transformed.prompt = `同學算出「${generated.prompt}」的答案是 ${proposedAnswer}，請判斷是否正確。`;
+  transformed.answer = isCorrect ? "正確" : "不正確";
+  transformed.type = "choice";
+  transformed.choices = ["正確", "不正確"];
+  transformed.hint = `先自己完成原題，再比較同學寫的 ${proposedAnswer}。`;
+  transformed.explanation = `${generated.explanation}所以同學的答案${isCorrect ? "正確" : "不正確"}。`;
+  return transformed;
 }
 
 function parameters(stageId, difficulty, index, rng) {
@@ -767,7 +820,7 @@ function speedGenerator(topic, operationKey, difficulty, variant, v) {
     return complexity(
       difficulty,
       () => result(operationKey, "input", `總距離 ${distance} 公里、總時間 ${time} 小時，平均速率多少？`, speed, "平均速率 = 總距離 ÷ 總時間。", `${distance} ÷ ${time} = ${speed}。`),
-      () => result(operationKey, "input", `平均速率 ${speed} 公里、總時間 ${time} 小時，總距離多少？`, distance, "總距離 = 平均速率 × 總時間。", `${speed} × ${time} = ${distance}。`),
+      () => result(operationKey, "input", `平均速率 ${speed} 公里/時、總時間 ${time} 小時，總距離多少？`, distance, "總距離 = 平均速率 × 總時間。", `${speed} × ${time} = ${distance}。`),
       () => result(operationKey, "input", `第一段以 ${speed} 公里/時走 ${time} 小時，第二段以 ${secondSpeed} 公里/時走 ${secondTime} 小時，全程平均速率多少？（取到小數第2位）`, round(totalDistance / totalTime), "先加總兩段距離與時間，再相除。", `(${distance} + ${secondSpeed * secondTime}) ÷ (${time} + ${secondTime}) = ${round(totalDistance / totalTime)}。`)
     );
   }
@@ -923,10 +976,16 @@ export function generateStageQuestion(stageId, difficulty = "easy", index = 0) {
 
   const rng = seededRandom(hashSeed(`${stageId}|${difficulty}|${index}`));
   const variant = index % 3;
+  const cognitiveMode = COGNITIVE_MODES[Math.floor(index / 3) % COGNITIVE_MODES.length];
   const topic = effectiveTopic(stage);
   const operationKey = operationKeysFor(stage)[variant];
-  const generated = generatorFor(stage, topic)(topic, operationKey, difficulty, variant, parameters(stageId, difficulty, index, rng));
-  generated.concept = `${operationKey}［${STAGE_STRATEGY_METADATA[stageId].strategyKeys[variant]}］`;
+  const generated = applyCognitiveMode(
+    generatorFor(stage, topic)(topic, operationKey, difficulty, variant, parameters(stageId, difficulty, index, rng)),
+    cognitiveMode,
+    index,
+    rng
+  );
+  generated.concept = `${operationKey}:${cognitiveMode}［${STAGE_STRATEGY_METADATA[stageId].strategyKeys[variant]}］`;
   return buildQuestion(stage, difficulty, index, generated, rng);
 }
 
@@ -952,12 +1011,78 @@ export function selectStageQuestions({ stageId, difficulty = "easy", count = 10,
   if (!Number.isInteger(count) || count < 1) throw new RangeError("count 必須是正整數。");
   if (typeof rng !== "function") throw new TypeError("rng 必須是函式。");
   const recent = new Set(recentQuestionIds);
-  const pool = generateStageQuestionPool(stageId, difficulty, Math.max(50, count + recent.size));
-  const candidates = [...pool.filter((question) => !recent.has(question.id)), ...pool.filter((question) => recent.has(question.id))];
+  const weightsByTarget = {
+    easy: { easy: 6, medium: 3, hard: 1 },
+    medium: { easy: 3, medium: 4, hard: 3 },
+    hard: { easy: 1, medium: 3, hard: 6 },
+  };
+  const weights = weightsByTarget[difficulty];
+  if (!weights) throw new RangeError(`不支援的難度：${difficulty}`);
+  const allocation = allocateDifficultyCounts(count, weights);
   const selected = [];
-  while (selected.length < count && candidates.length) {
-    const position = Math.min(candidates.length - 1, Math.max(0, Math.floor(rng() * candidates.length)));
-    selected.push(candidates.splice(position, 1)[0]);
+  for (const level of STAGE_DIFFICULTIES) {
+    const levelCount = allocation[level];
+    if (!levelCount) continue;
+    const pool = generateStageQuestionPool(stageId, level, Math.max(50, levelCount + recent.size));
+    selected.push(...selectBalancedStructures(pool, levelCount, recent, rng));
+  }
+  return shuffle(selected, rng);
+}
+
+function allocateDifficultyCounts(count, weights) {
+  const totalWeight = Object.values(weights).reduce((sum, value) => sum + value, 0);
+  const allocation = Object.fromEntries(STAGE_DIFFICULTIES.map((level) => [level, Math.floor(count * weights[level] / totalWeight)]));
+  let remainder = count - Object.values(allocation).reduce((sum, value) => sum + value, 0);
+  const priority = [...STAGE_DIFFICULTIES].sort((left, right) =>
+    (count * weights[right] / totalWeight % 1) - (count * weights[left] / totalWeight % 1)
+  );
+  for (let index = 0; remainder > 0; index += 1, remainder -= 1) {
+    allocation[priority[index % priority.length]] += 1;
+  }
+  return allocation;
+}
+
+function selectBalancedStructures(pool, count, recent, rng) {
+  const groups = new Map();
+  for (const question of pool) {
+    const fingerprint = getQuestionStructureFingerprint(question);
+    const group = groups.get(fingerprint) || [];
+    group.push(question);
+    groups.set(fingerprint, group);
+  }
+  const groupsByMode = Object.fromEntries(COGNITIVE_MODES.map((mode) => [mode, []]));
+  for (const [fingerprint, group] of groups.entries()) {
+    const mode = fingerprint.match(/mode:([^|]+)/)?.[1];
+    groupsByMode[mode].push([
+      ...shuffle(group.filter((question) => !recent.has(question.id)), rng),
+      ...shuffle(group.filter((question) => recent.has(question.id)), rng),
+    ]);
+  }
+  for (const mode of COGNITIVE_MODES) groupsByMode[mode] = shuffle(groupsByMode[mode], rng);
+  const selected = [];
+  let cycle = 0;
+  while (selected.length < count) {
+    let added = false;
+    for (const mode of COGNITIVE_MODES) {
+      if (selected.length >= count) break;
+      const modeGroups = groupsByMode[mode];
+      const group = modeGroups[cycle % modeGroups.length];
+      const question = group.shift();
+      if (question) {
+        selected.push(question);
+        added = true;
+      }
+    }
+    if (!added) break;
+    cycle += 1;
   }
   return selected;
+}
+
+export function getQuestionStructureFingerprint(question) {
+  const concept = String(question?.concept || "");
+  const operationKey = concept.split("［")[0].split("｜").at(-1);
+  const cognitiveMode = operationKey.split(":").at(-1);
+  const solutionSteps = question?.difficulty === "hard" ? 3 : question?.difficulty === "medium" ? 2 : 1;
+  return `${operationKey}|${question?.type || "unknown"}|steps:${solutionSteps}|mode:${cognitiveMode}`;
 }

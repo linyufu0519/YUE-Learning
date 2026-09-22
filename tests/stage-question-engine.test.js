@@ -7,6 +7,7 @@ import {
   STAGE_STRATEGY_METADATA,
   generateStageQuestion,
   generateStageQuestionPool,
+  getQuestionStructureFingerprint,
   selectStageQuestions,
 } from "../js/stage-question-engine.js";
 
@@ -279,6 +280,44 @@ test("每次抽取 10 題不重複，且優先避開最近出題", () => {
     assert.equal(new Set(first.map((question) => question.id)).size, 10);
     assert.equal(new Set(second.map((question) => question.id)).size, 10);
     assert.equal(second.some((question) => first.some((recent) => recent.id === question.id)), false);
+  }
+});
+
+test("使用者體驗驗收：79 關每組 10 題具認知操作配額，不是只換數字", () => {
+  for (const stage of COURSE_STAGES) {
+    for (const difficulty of STAGE_DIFFICULTIES) {
+      const questions = selectStageQuestions({
+        stageId: stage.id,
+        difficulty,
+        count: 10,
+        rng: fixedRng([0.13, 0.79, 0.41, 0.92, 0.27]),
+      });
+      const fingerprints = questions.map(getQuestionStructureFingerprint);
+      const operationModes = questions.map((question) => question.concept.split("［")[0].split("｜").at(-1));
+      const cognitiveModes = operationModes.map((key) => key.split(":").at(-1));
+      const difficultyCounts = Object.fromEntries(STAGE_DIFFICULTIES.map((level) => [
+        level,
+        questions.filter((question) => question.difficulty === level).length,
+      ]));
+      assert.equal(questions.length, 10);
+      assert.ok(new Set(fingerprints).size >= 6, `${stage.id}/${difficulty} 結構指紋不足`);
+      assert.ok(new Set(operationModes).size >= 6, `${stage.id}/${difficulty} 操作模板不足`);
+      assert.ok(new Set(cognitiveModes).size >= 3, `${stage.id}/${difficulty} 認知操作不足`);
+      assert.ok(new Set(questions.map((question) => question.type)).size >= 2, `${stage.id}/${difficulty} 作答型態不足`);
+      assert.ok(STAGE_DIFFICULTIES.every((level) => difficultyCounts[level] > 0), `${stage.id}/${difficulty} 缺少難度層次`);
+      assert.equal(
+        difficultyCounts[difficulty],
+        Math.max(...Object.values(difficultyCounts)),
+        `${stage.id}/${difficulty} 未以所選難度為主`
+      );
+      assert.ok(questions.some((question) => question.prompt.includes("請判斷是否正確")), `${stage.id}/${difficulty} 缺少判斷題`);
+      assert.ok(questions.some((question) => question.prompt.includes("請選出正確答案")), `${stage.id}/${difficulty} 缺少選擇轉換題`);
+      assert.ok(questions.some((question) => !/請判斷是否正確|請選出正確答案/.test(question.prompt)), `${stage.id}/${difficulty} 缺少原始解題`);
+      assert.ok(
+        questions.every((question) => !question.choices?.some((choice) => /NaN|Infinity/.test(choice))),
+        `${stage.id}/${difficulty} 選項含非法數值`
+      );
+    }
   }
 });
 
