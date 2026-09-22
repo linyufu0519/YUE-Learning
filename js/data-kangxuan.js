@@ -41,6 +41,7 @@ export const KANGXUAN_UNITS = [
     available: true,
     description: "觀察圖形與數形的規律，理解和差積商不變性質與間隔問題。",
     sections: ["3-1 圖形和數形的規律", "3-2 和差積商不變", "3-3 間隔問題"],
+    practiceBankKey: "kx-quantity-relations",
   },
   {
     id: "kx-unit4",
@@ -55,6 +56,7 @@ export const KANGXUAN_UNITS = [
       "4-3 小數除法的應用",
       "4-4 被除數、除數和商的關係",
     ],
+    practiceBankKey: "kx-decimal-division",
   },
   {
     id: "kx-unit5",

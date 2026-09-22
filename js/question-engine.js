@@ -104,6 +104,32 @@ function buildTextChoiceQuestion({ id, unitId, difficulty, prompt, answer, hint,
   };
 }
 
+function buildTextQuestion({ id, unitId, difficulty, type = "input", prompt, answer, hint, explanation, choices = null }) {
+  const question = {
+    id,
+    unitId,
+    difficulty,
+    type,
+    prompt,
+    answer: String(answer),
+    hint,
+    explanation,
+  };
+  if (type === "choice") {
+    question.choices = choices || uniqueTextChoices(String(answer), []);
+  }
+  return question;
+}
+
+function formatDecimal(value) {
+  const rounded = Math.round((value + Number.EPSILON) * 1000) / 1000;
+  return String(rounded).replace(/\.?0+$/, "");
+}
+
+function decimalChoices(answer, seeds) {
+  return uniqueTextChoices(formatDecimal(answer), seeds.map(formatDecimal));
+}
+
 function lcm(a, b) {
   return Math.abs(a * b) / gcd(a, b);
 }
@@ -209,6 +235,172 @@ function makeGcfLcmQuestion(kind, a, b, difficulty, index, type = "input") {
         ? `${a} 和 ${b} 的共同因數中最大的是 ${answerValue}，所以最大公因數是 ${answerValue}。`
         : `${a} 和 ${b} 的共同倍數中最小的是 ${answerValue}，所以最小公倍數是 ${answerValue}。`,
     choices: type === "choice" ? uniqueWrongChoices(String(answerValue), seeds) : null,
+  });
+}
+
+function makeSequenceQuestion(start, step, shownCount, difficulty, index, type = "input") {
+  const seq = Array.from({ length: shownCount }, (_, i) => start + step * i);
+  const answer = start + step * shownCount;
+  return buildTextQuestion({
+    id: `kx3-seq-${difficulty}-${index}-${start}_${step}_${shownCount}`,
+    unitId: "kx-quantity-relations",
+    difficulty,
+    type,
+    prompt: `觀察數列：${seq.join("、")}、下一個數是多少？`,
+    answer,
+    hint: `相鄰兩數每次都增加 ${step}。`,
+    explanation: `${seq[seq.length - 1]} 再加 ${step}，所以下一個數是 ${answer}。`,
+    choices: type === "choice" ? uniqueTextChoices(String(answer), [answer + step, answer - step, answer + 1]) : null,
+  });
+}
+
+function makeShapeRuleQuestion(base, add, n, difficulty, index, type = "input") {
+  const answer = base + add * n;
+  return buildTextQuestion({
+    id: `kx3-shape-${difficulty}-${index}-${base}_${add}_${n}`,
+    unitId: "kx-quantity-relations",
+    difficulty,
+    type,
+    prompt: `某圖形第 n 個需要 ${base}+${add}×n 個小方塊，第 ${n} 個需要幾個小方塊？`,
+    answer,
+    hint: `把 n=${n} 代入 ${base}+${add}×n。`,
+    explanation: `${base}+${add}×${n}=${answer}，所以第 ${n} 個需要 ${answer} 個小方塊。`,
+    choices: type === "choice" ? uniqueTextChoices(String(answer), [answer + add, answer - add, base * n + add]) : null,
+  });
+}
+
+function makeInvariantQuestion(kind, a, b, change, difficulty, index, type = "input") {
+  let prompt = "";
+  let answer = 0;
+  let hint = "";
+  let explanation = "";
+  if (kind === "sum") {
+    answer = a + b;
+    prompt = `${a}+${b}=${answer}。如果第一個數增加 ${change}，第二個數減少 ${change}，新的和是多少？`;
+    hint = "一個加多少，另一個減多少，總和不變。";
+    explanation = `(${a}+${change})+(${b}-${change}) = ${answer}，所以和不變。`;
+  } else if (kind === "product") {
+    answer = a * b;
+    prompt = `${a}×${b}=${answer}。如果第一個數乘以 ${change}，第二個數除以 ${change}，新的積是多少？`;
+    hint = "一個因數乘以幾，另一個因數除以同一個數，積不變。";
+    explanation = `(${a}×${change})×(${b}÷${change}) = ${a}×${b} = ${answer}。`;
+  } else {
+    answer = a / b;
+    prompt = `${a}÷${b}=${answer}。如果被除數和除數都乘以 ${change}，新的商是多少？`;
+    hint = "被除數和除數同乘一個不為 0 的數，商不變。";
+    explanation = `(${a}×${change})÷(${b}×${change}) = ${a}÷${b} = ${answer}。`;
+  }
+  return buildTextQuestion({
+    id: `kx3-invariant-${kind}-${difficulty}-${index}-${a}_${b}_${change}`,
+    unitId: "kx-quantity-relations",
+    difficulty,
+    type,
+    prompt,
+    answer,
+    hint,
+    explanation,
+    choices: type === "choice" ? uniqueTextChoices(String(answer), [answer + change, Math.max(1, answer - change), answer * change]) : null,
+  });
+}
+
+function makeIntervalQuestion(kind, a, b, difficulty, index, type = "input") {
+  let prompt = "";
+  let answer = 0;
+  let hint = "";
+  let explanation = "";
+  if (kind === "lineTrees") {
+    answer = a - 1;
+    prompt = `一排種了 ${a} 棵樹，相鄰兩棵樹之間有幾個間隔？`;
+    hint = "直線排列且兩端都有樹，間隔數 = 棵數 - 1。";
+    explanation = `${a} 棵樹形成 ${a}-1=${answer} 個間隔。`;
+  } else if (kind === "lamps") {
+    answer = a / b + 1;
+    prompt = `一條 ${a} 公尺長的步道，從起點到終點每 ${b} 公尺放一盞燈，兩端都放，共要幾盞？`;
+    hint = "先算間隔數，再加上起點那一盞。";
+    explanation = `${a}÷${b}=${a / b} 個間隔，兩端都放所以燈數是 ${a / b}+1=${answer}。`;
+  } else {
+    answer = a * b;
+    prompt = `圓形花圃每隔 ${b} 公尺插一面旗，總共有 ${a} 個間隔，花圃一圈長幾公尺？`;
+    hint = "圓形排列沒有端點，總長 = 間隔數 × 每段長。";
+    explanation = `${a}×${b}=${answer}，所以一圈長 ${answer} 公尺。`;
+  }
+  return buildTextQuestion({
+    id: `kx3-interval-${kind}-${difficulty}-${index}-${a}_${b}`,
+    unitId: "kx-quantity-relations",
+    difficulty,
+    type,
+    prompt,
+    answer,
+    hint,
+    explanation,
+    choices: type === "choice" ? uniqueTextChoices(String(answer), [answer + 1, Math.max(1, answer - 1), answer + b]) : null,
+  });
+}
+
+function makeDecimalDivisionQuestion({ id, difficulty, dividend, divisor, label = "", type = "input" }) {
+  const answer = dividend / divisor;
+  const answerText = formatDecimal(answer);
+  const promptLabel = label ? `${label}：` : "";
+  return buildTextQuestion({
+    id,
+    unitId: "kx-decimal-division",
+    difficulty,
+    type,
+    prompt: `${promptLabel}${formatDecimal(dividend)} ÷ ${formatDecimal(divisor)} = ?`,
+    answer: answerText,
+    hint: "可以把除數變成整數：被除數和除數同時乘以 10、100 或 1000，商不變。",
+    explanation: `${formatDecimal(dividend)} ÷ ${formatDecimal(divisor)} = ${answerText}。小數答案末尾的 0 可省略，例如 ${answerText} 和 ${answerText}.0 表示同一個數。`,
+    choices: type === "choice" ? decimalChoices(answer, [answer + 1, answer * 10, Math.max(0, answer - 0.5)]) : null,
+  });
+}
+
+function makeDecimalWordQuestion(total, each, item, difficulty, index, type = "input") {
+  const answer = total / each;
+  const answerText = formatDecimal(answer);
+  return buildTextQuestion({
+    id: `kx4-word-${difficulty}-${index}-${total}_${each}`,
+    unitId: "kx-decimal-division",
+    difficulty,
+    type,
+    prompt: `${formatDecimal(total)} 公升${item}，每瓶裝 ${formatDecimal(each)} 公升，可以裝幾瓶？`,
+    answer: answerText,
+    hint: "把總量除以每瓶容量，就是可以裝的瓶數。",
+    explanation: `${formatDecimal(total)}÷${formatDecimal(each)}=${answerText}，所以可以裝 ${answerText} 瓶。`,
+    choices: type === "choice" ? decimalChoices(answer, [answer + 1, answer - 1, answer * 2]) : null,
+  });
+}
+
+function makeDecimalRelationQuestion(kind, dividend, divisor, factor, difficulty, index, type = "choice") {
+  const original = dividend / divisor;
+  let prompt = "";
+  let answer = original;
+  let hint = "";
+  let explanation = "";
+  if (kind === "sameQuotient") {
+    prompt = `${formatDecimal(dividend)}÷${formatDecimal(divisor)}=${formatDecimal(original)}。被除數和除數都乘以 ${factor}，新的商是多少？`;
+    hint = "被除數和除數同時乘以相同的非 0 數，商不變。";
+    explanation = `兩邊同乘 ${factor}，商仍是 ${formatDecimal(original)}。`;
+  } else if (kind === "dividendTimes") {
+    answer = original * factor;
+    prompt = `${formatDecimal(dividend)}÷${formatDecimal(divisor)}=${formatDecimal(original)}。只有被除數乘以 ${factor}，新的商是多少？`;
+    hint = "除數不變，被除數變成幾倍，商也變成幾倍。";
+    explanation = `只有被除數乘以 ${factor}，所以商是 ${formatDecimal(original)}×${factor}=${formatDecimal(answer)}。`;
+  } else {
+    answer = original / factor;
+    prompt = `${formatDecimal(dividend)}÷${formatDecimal(divisor)}=${formatDecimal(original)}。只有除數乘以 ${factor}，新的商是多少？`;
+    hint = "被除數不變，除數變成幾倍，商會變成原來的幾分之一。";
+    explanation = `只有除數乘以 ${factor}，所以商是 ${formatDecimal(original)}÷${factor}=${formatDecimal(answer)}。`;
+  }
+  return buildTextQuestion({
+    id: `kx4-relation-${kind}-${difficulty}-${index}-${dividend}_${divisor}_${factor}`,
+    unitId: "kx-decimal-division",
+    difficulty,
+    type,
+    prompt,
+    answer: formatDecimal(answer),
+    hint,
+    explanation,
+    choices: type === "choice" ? decimalChoices(answer, [original, answer * factor, answer + factor]) : null,
   });
 }
 
@@ -407,8 +599,120 @@ function gcfLcmBank() {
   ];
 }
 
+function quantityRelationsBank() {
+  const easySequences = [
+    [2, 3, 4],
+    [5, 5, 4],
+    [1, 4, 5],
+    [10, 2, 4],
+    [3, 6, 4],
+    [7, 3, 5],
+  ];
+  const easyIntervals = [
+    ["lineTrees", 8, 0],
+    ["lineTrees", 12, 0],
+    ["lamps", 20, 5],
+    ["lamps", 24, 6],
+  ];
+  const mediumShapes = [
+    [1, 3, 6],
+    [2, 4, 5],
+    [3, 2, 9],
+    [5, 5, 4],
+    [4, 6, 5],
+    [6, 3, 8],
+  ];
+  const mediumInvariants = [
+    ["sum", 38, 45, 7],
+    ["sum", 126, 74, 20],
+    ["product", 12, 8, 2],
+    ["product", 15, 6, 3],
+  ];
+  const hardIntervals = [
+    ["circle", 9, 4],
+    ["circle", 12, 3],
+    ["lamps", 45, 5],
+    ["lamps", 72, 8],
+    ["circle", 15, 6],
+    ["lamps", 96, 12],
+  ];
+  const hardInvariants = [
+    ["quotient", 84, 7, 3],
+    ["quotient", 96, 12, 4],
+    ["product", 18, 14, 7],
+    ["sum", 245, 155, 35],
+  ];
+  return [
+    ...easySequences.map((p, i) => makeSequenceQuestion(p[0], p[1], p[2], "easy", i, i % 2 ? "choice" : "input")),
+    ...easyIntervals.map((p, i) => makeIntervalQuestion(p[0], p[1], p[2], "easy", i, i % 2 ? "input" : "choice")),
+    ...mediumShapes.map((p, i) => makeShapeRuleQuestion(p[0], p[1], p[2], "medium", i, i % 2 ? "choice" : "input")),
+    ...mediumInvariants.map((p, i) => makeInvariantQuestion(p[0], p[1], p[2], p[3], "medium", i, i % 2 ? "input" : "choice")),
+    ...hardIntervals.map((p, i) => makeIntervalQuestion(p[0], p[1], p[2], "hard", i, "input")),
+    ...hardInvariants.map((p, i) => makeInvariantQuestion(p[0], p[1], p[2], p[3], "hard", i, "input")),
+  ];
+}
+
+function decimalDivisionBank() {
+  const easyPairs = [
+    [6, 0.5],
+    [8, 0.4],
+    [9, 0.3],
+    [12, 0.6],
+    [15, 0.5],
+    [21, 0.7],
+    [24, 0.8],
+    [27, 0.9],
+    [30, 0.6],
+    [36, 0.4],
+  ];
+  const mediumPairs = [
+    [4.8, 0.6],
+    [7.5, 1.5],
+    [9.6, 1.2],
+    [12.6, 0.9],
+    [13.5, 2.7],
+    [18.4, 2.3],
+    [22.5, 1.5],
+    [31.2, 2.4],
+  ];
+  const hardPairs = [
+    [5.25, 0.25],
+    [8.64, 0.12],
+    [14.4, 0.16],
+    [18.75, 1.25],
+    [23.46, 3.4],
+    [45.6, 0.24],
+    [62.5, 1.25],
+  ];
+  const wordPairs = [
+    [7.5, 1.5, "柳橙汁"],
+    [12.6, 0.9, "牛奶"],
+    [18.75, 1.25, "果汁"],
+  ];
+  const relationPairs = [
+    ["sameQuotient", 12, 0.6, 10],
+    ["dividendTimes", 8.4, 1.2, 3],
+    ["divisorTimes", 9.6, 0.8, 4],
+  ];
+  return [
+    ...easyPairs.map((p, i) =>
+      makeDecimalDivisionQuestion({ id: `kx4-easy-${i}-${p[0]}_${p[1]}`, difficulty: "easy", dividend: p[0], divisor: p[1], type: i % 2 ? "choice" : "input" })
+    ),
+    ...mediumPairs.map((p, i) =>
+      makeDecimalDivisionQuestion({ id: `kx4-medium-${i}-${p[0]}_${p[1]}`, difficulty: "medium", dividend: p[0], divisor: p[1], type: i % 2 ? "input" : "choice" })
+    ),
+    ...wordPairs.map((p, i) => makeDecimalWordQuestion(p[0], p[1], p[2], "medium", i, i % 2 ? "choice" : "input")),
+    ...hardPairs.map((p, i) =>
+      makeDecimalDivisionQuestion({ id: `kx4-hard-${i}-${p[0]}_${p[1]}`, difficulty: "hard", dividend: p[0], divisor: p[1], label: "挑戰題", type: "input" })
+    ),
+    ...relationPairs.map((p, i) => makeDecimalRelationQuestion(p[0], p[1], p[2], p[3], "hard", i, i % 2 ? "input" : "choice")),
+  ];
+}
+
 export function getQuestionBank(unitId) {
   if (unitId === "kx-gcf-lcm") return gcfLcmBank();
+  if (unitId === "kx-quantity-relations") return quantityRelationsBank();
+  if (unitId === "kx-decimal-division") return decimalDivisionBank();
   if (unitId === "fraction-multiply") return multiplicationBank();
   if (unitId === "fraction-divide") return divisionBank();
   return [];

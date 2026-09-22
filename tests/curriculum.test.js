@@ -82,12 +82,24 @@ test("康軒版第2單元「分數除法」沿用既有 fraction-divide 動態�
   );
 });
 
+test("康軒版第3、4單元具備可練習題庫", () => {
+  assert.equal(getPracticeBankKey("kangxuan", "kx-unit3"), "kx-quantity-relations");
+  assert.equal(isPracticeAvailable("kangxuan", "kx-unit3"), true);
+  assert.ok(getAvailableQuestionCount("kangxuan", "kx-unit3") >= 30);
+  assert.ok(getQuestionBank("kangxuan", "kx-unit3").some((q) => q.prompt.includes("間隔") || q.prompt.includes("數列")));
+
+  assert.equal(getPracticeBankKey("kangxuan", "kx-unit4"), "kx-decimal-division");
+  assert.equal(isPracticeAvailable("kangxuan", "kx-unit4"), true);
+  assert.ok(getAvailableQuestionCount("kangxuan", "kx-unit4") >= 30);
+  assert.ok(getQuestionBank("kangxuan", "kx-unit4").some((q) => q.prompt.includes("÷")));
+});
+
 test("康軒版尚未開放題庫的單元仍可教學，但練習不可用", () => {
-  assert.equal(getPracticeBankKey("kangxuan", "kx-unit3"), null);
-  assert.equal(isPracticeAvailable("kangxuan", "kx-unit3"), false);
-  assert.equal(getAvailableQuestionCount("kangxuan", "kx-unit3"), 0);
-  assert.deepEqual(getQuestionBank("kangxuan", "kx-unit3"), []);
-  assert.ok(getLessonForVersion("kangxuan", "kx-unit3"));
+  assert.equal(getPracticeBankKey("kangxuan", "kx-unit5"), null);
+  assert.equal(isPracticeAvailable("kangxuan", "kx-unit5"), false);
+  assert.equal(getAvailableQuestionCount("kangxuan", "kx-unit5"), 0);
+  assert.deepEqual(getQuestionBank("kangxuan", "kx-unit5"), []);
+  assert.ok(getLessonForVersion("kangxuan", "kx-unit5"));
 });
 
 test("getLessonForVersion：翰林版直接查 lessons.js，康軒版單元2沿用翰林分數除法教學", () => {
@@ -114,6 +126,10 @@ test("resolveUnit：康軒 kx-* 單元不會被誤讀成翰林單元", () => {
   const kangxuanUnit9 = resolveUnit("kx-unit9", "hanlin");
   assert.equal(kangxuanUnit9.version, "kangxuan");
   assert.equal(kangxuanUnit9.unit.title, "第9單元 放大圖、縮圖與比例尺");
+
+  const kangxuanUnit4 = resolveUnit("kx-unit4", "hanlin");
+  assert.equal(kangxuanUnit4.version, "kangxuan");
+  assert.equal(kangxuanUnit4.unit.title, "第4單元 小數除法");
 
   const hanlinUnit = resolveUnit("fraction-divide", "kangxuan");
   assert.equal(hanlinUnit.version, "hanlin");

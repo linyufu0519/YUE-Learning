@@ -1,0 +1,117 @@
+================================================================================
+  YUE-Learning 康軒版教材 — 第3、4單元題庫新增 變更摘要
+  日期：2026-09-22
+================================================================================
+
+【USER 需求】
+  使用者要求優先實作康軒版第3單元「數量關係」與第4單元「小數除法」題庫並部署。
+  第3單元需涵蓋圖形和數形規律、和差積商不變、間隔問題；第4單元需涵蓋整數÷小數、
+  小數÷小數、小數除法應用、被除數/除數/商關係，並支援小數答案等值判定。
+
+--------------------------------------------------------------------------------
+
+【影響範圍】
+
+  程式位置一：js/data-kangxuan.js
+  函式／區塊：KANGXUAN_UNITS
+  說明：康軒版單元目錄與練習題庫 key 對應。
+  異動：為 kx-unit3 指定 practiceBankKey="kx-quantity-relations"；為 kx-unit4 指定 practiceBankKey="kx-decimal-division"，使首頁從「題庫建置中」改為可練習。
+
+  修改前：
+    {
+      id: "kx-unit3",
+      title: "第3單元 數量關係",
+      available: true
+    }
+
+  修改後：
+    {
+      id: "kx-unit3",
+      title: "第3單元 數量關係",
+      available: true,
+      practiceBankKey: "kx-quantity-relations"
+    }
+
+  ─────────────────────────────────────────────────────────────────────────────
+
+  程式位置二：js/question-engine.js
+  函式／區塊：quantityRelationsBank、decimalDivisionBank、getQuestionBank
+  說明：動態題目產生與隨機抽題邏輯。
+  異動：新增第3單元數量關係題庫與第4單元小數除法題庫，每單元至少 30 題，且 easy/medium/hard 各可抽滿 10 題。題型包含選擇題與輸入題，並提供提示與解析。
+
+  修改前：
+    export function getQuestionBank(unitId) {
+      if (unitId === "kx-gcf-lcm") return gcfLcmBank();
+      if (unitId === "fraction-multiply") return multiplicationBank();
+      if (unitId === "fraction-divide") return divisionBank();
+      return [];
+    }
+
+  修改後：
+    export function getQuestionBank(unitId) {
+      if (unitId === "kx-gcf-lcm") return gcfLcmBank();
+      if (unitId === "kx-quantity-relations") return quantityRelationsBank();
+      if (unitId === "kx-decimal-division") return decimalDivisionBank();
+      if (unitId === "fraction-multiply") return multiplicationBank();
+      if (unitId === "fraction-divide") return divisionBank();
+      return [];
+    }
+
+  ─────────────────────────────────────────────────────────────────────────────
+
+  程式位置三：js/logic.js
+  函式／區塊：parseDecimal、decimalsEqual、gradeAnswer
+  說明：答題判定邏輯。
+  異動：新增小數解析與等值判定，讓 1.5 與 1.50、0.75 與 .75 可視為相同答案；原有分數等值判定保留。
+
+  修改前：
+    if (parsedUser && parsedAnswer) {
+      return fractionsEqual(parsedUser, parsedAnswer);
+    }
+    return String(userAnswer).trim() === String(question.answer).trim();
+
+  修改後：
+    if (parsedUser && parsedAnswer) {
+      return fractionsEqual(parsedUser, parsedAnswer);
+    }
+    const decimalUser = parseDecimal(String(userAnswer));
+    const decimalAnswer = parseDecimal(String(question.answer));
+    if (decimalUser != null && decimalAnswer != null) {
+      return decimalsEqual(decimalUser, decimalAnswer);
+    }
+    return String(userAnswer).trim() === String(question.answer).trim();
+
+  ─────────────────────────────────────────────────────────────────────────────
+
+  程式位置四：tests/curriculum.test.js、tests/question-engine.test.js
+  函式／區塊：康軒第3/4單元回歸測試
+  說明：防止題庫 key、難度抽題與小數判定退化。
+  異動：新增 kx-unit3/kx-unit4 題庫可用測試、easy/medium/hard 抽題測試、小數等值答案測試。
+
+  ─────────────────────────────────────────────────────────────────────────────
+
+  程式位置五：README.md
+  函式／區塊：功能總覽與後續擴充方向
+  說明：使用者文件。
+  異動：更新已可練習單元清單，列入康軒第3、4單元；未開放題庫範圍改為第5～9單元與複習單元。
+
+--------------------------------------------------------------------------------
+
+【未修改項目】
+  localStorage / Firebase 同步資料結構
+  說明：第3、4單元沿用既有 versioned progress，以 kx-unit3/kx-unit4 作為進度 key，不需調整資料結構或雲端合併規則。
+
+  翰林版題庫與教學
+  說明：本次只新增康軒第3、4單元題庫；翰林版單元 id 與既有題庫不變。
+
+--------------------------------------------------------------------------------
+
+【測試建議】
+  1. 開啟首頁確認康軒第3、4單元顯示可挑戰並可點「開始練習」。
+  2. 進入 practice.html?unit=kx-unit3，分別切換 easy/medium/hard，確認可產生數列規律、和差積商不變、間隔問題。
+  3. 進入 practice.html?unit=kx-unit4，確認整數÷小數、小數÷小數、應用題與商關係題皆可出題。
+  4. 在小數除法輸入題輸入等值小數（例如 1.50 對 1.5）確認判定正確。
+  5. 回測康軒第1、2單元與翰林版分數乘法/除法，確認既有功能未受影響。
+  6. 家長頁輸入 8888 後確認康軒第3、4單元會出現在可練習進度列表。
+
+================================================================================

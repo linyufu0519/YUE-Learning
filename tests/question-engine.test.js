@@ -14,6 +14,8 @@ function fixedRng(values) {
 
 test("已開放單元題庫至少 30 題", () => {
   assert.ok(getAvailableQuestionCount("kx-gcf-lcm") >= 30);
+  assert.ok(getAvailableQuestionCount("kx-quantity-relations") >= 30);
+  assert.ok(getAvailableQuestionCount("kx-decimal-division") >= 30);
   assert.ok(getAvailableQuestionCount("fraction-multiply") >= 30);
   assert.ok(getAvailableQuestionCount("fraction-divide") >= 30);
 });
@@ -50,6 +52,37 @@ test("康軒第1單元數值輸入題可正確判定答案", () => {
     rng: fixedRng([0]),
   });
   assert.equal(gradeAnswer({ type: "input", answer: question.answer }, question.answer), true);
+});
+
+test("康軒第3單元題庫涵蓋 easy/medium/hard 並可隨機出題", () => {
+  for (const difficulty of ["easy", "medium", "hard"]) {
+    const questions = selectPracticeQuestions({
+      unitId: "kx-quantity-relations",
+      difficulty,
+      count: 10,
+      rng: fixedRng([0.1, 0.5, 0.9]),
+    });
+    assert.equal(questions.length, 10);
+    assert.ok(questions.every((q) => q.difficulty === difficulty));
+  }
+});
+
+test("康軒第4單元題庫涵蓋 easy/medium/hard 並可隨機出題", () => {
+  for (const difficulty of ["easy", "medium", "hard"]) {
+    const questions = selectPracticeQuestions({
+      unitId: "kx-decimal-division",
+      difficulty,
+      count: 10,
+      rng: fixedRng([0.3, 0.7, 0.2]),
+    });
+    assert.equal(questions.length, 10);
+    assert.ok(questions.every((q) => q.difficulty === difficulty));
+  }
+});
+
+test("小數除法輸入題支援等值小數答案", () => {
+  assert.equal(gradeAnswer({ type: "input", answer: "1.5" }, "1.50"), true);
+  assert.equal(gradeAnswer({ type: "input", answer: "0.75" }, ".75"), true);
 });
 
 test("抽題會避開最近出現題目", () => {

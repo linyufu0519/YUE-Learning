@@ -67,6 +67,19 @@ export function fractionsEqual(a, b) {
   return sa.num === sb.num && sa.den === sb.den;
 }
 
+export function parseDecimal(input) {
+  if (typeof input !== "string") return null;
+  const str = input.trim();
+  if (!/^-?(?:\d+|\d*\.\d+)$/.test(str)) return null;
+  const value = Number(str);
+  return Number.isFinite(value) ? value : null;
+}
+
+export function decimalsEqual(a, b, epsilon = 0.000001) {
+  if (a == null || b == null) return false;
+  return Math.abs(a - b) < epsilon;
+}
+
 /**
  * 判斷使用者作答是否正確。
  * @param {{type:'choice'|'input', answer:string}} question
@@ -77,11 +90,16 @@ export function gradeAnswer(question, userAnswer) {
   if (question.type === "choice") {
     return String(userAnswer).trim() === String(question.answer).trim();
   }
-  // input 類型：先嘗試以分數數值比較，失敗則退回字串比較
+  // input 類型：先嘗試以分數數值比較，再嘗試小數數值比較，最後退回字串比較
   const parsedUser = parseFraction(String(userAnswer));
   const parsedAnswer = parseFraction(String(question.answer));
   if (parsedUser && parsedAnswer) {
     return fractionsEqual(parsedUser, parsedAnswer);
+  }
+  const decimalUser = parseDecimal(String(userAnswer));
+  const decimalAnswer = parseDecimal(String(question.answer));
+  if (decimalUser != null && decimalAnswer != null) {
+    return decimalsEqual(decimalUser, decimalAnswer);
   }
   return String(userAnswer).trim() === String(question.answer).trim();
 }
