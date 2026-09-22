@@ -46,57 +46,6 @@ function render() {
       latestDate = summary.lastDate;
     }
 
-    function renderSemesterProgress(version) {
-      const area = document.getElementById("semester-stage-summary");
-      const heading = area.closest("section").querySelector(".section-title");
-      if (version !== "kangxuan") {
-        area.hidden = true;
-        heading.hidden = true;
-        return;
-      }
-      area.hidden = false;
-      heading.hidden = false;
-      const progress = getSemesterProgress();
-      const summary = getSemesterSummary(progress);
-      const unitRows = summary.units
-        .map(
-          (unit) => `
-            <div class="mission-item ${unit.completedStages === unit.totalStages ? "done" : ""}">
-              <div>
-                <strong>${escapeHtml(unit.title)}</strong>
-                <div class="unit-meta">${unit.completedStages}/${unit.totalStages} 關完成</div>
-              </div>
-              <span>${unit.rewardClaimed ? `✅ ${unit.completionXp} XP 已取得` : `${unit.completionXp} XP 待解鎖`}</span>
-            </div>
-          `
-        )
-        .join("");
-      const weaknesses = COURSE_STAGES.map((stage) => {
-        const stats = progress.stageStats?.[stage.id];
-        if (!stats?.attempts) return null;
-        return { stage, accuracy: Math.round((stats.correct / stats.attempts) * 100), attempts: stats.attempts };
-      })
-        .filter(Boolean)
-        .sort((a, b) => a.accuracy - b.accuracy || b.attempts - a.attempts)
-        .slice(0, 5);
-      area.innerHTML = `
-        <div class="reward-meta">已完成 <strong>${summary.completedStages}/79</strong> 關 ・ 六上 XP <strong>${summary.xp}/9900</strong></div>
-        <p class="unit-meta">目前關卡：${summary.currentStage ? `第 ${summary.currentStage.order} 關 ${escapeHtml(summary.currentStage.topic)}` : "全部完成"}</p>
-        <div class="mission-list">${unitRows}</div>
-        <h3>需要加強的主題</h3>
-        ${
-          weaknesses.length
-            ? `<div class="mission-list">${weaknesses
-                .map(
-                  ({ stage, accuracy, attempts }) =>
-                    `<div class="mission-item"><span>${escapeHtml(stage.topic)}</span><span>${accuracy}%（${attempts} 題）</span></div>`
-                )
-                .join("")}</div>`
-            : `<div class="empty-hint">完成關卡練習後，這裡會依正確率列出可加強的主題。</div>`
-        }
-      `;
-    }
-
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>${unit.icon} ${unit.title}</td>
@@ -166,6 +115,57 @@ function render() {
       })
       .join("");
   }
+}
+
+function renderSemesterProgress(version) {
+  const area = document.getElementById("semester-stage-summary");
+  const heading = area.closest("section").querySelector(".section-title");
+  if (version !== "kangxuan") {
+    area.hidden = true;
+    heading.hidden = true;
+    return;
+  }
+  area.hidden = false;
+  heading.hidden = false;
+  const progress = getSemesterProgress();
+  const summary = getSemesterSummary(progress);
+  const unitRows = summary.units
+    .map(
+      (unit) => `
+        <div class="mission-item ${unit.completedStages === unit.totalStages ? "done" : ""}">
+          <div>
+            <strong>${escapeHtml(unit.title)}</strong>
+            <div class="unit-meta">${unit.completedStages}/${unit.totalStages} 關完成</div>
+          </div>
+          <span>${unit.rewardClaimed ? `✅ ${unit.completionXp} XP 已取得` : `${unit.completionXp} XP 待解鎖`}</span>
+        </div>
+      `
+    )
+    .join("");
+  const weaknesses = COURSE_STAGES.map((stage) => {
+    const stats = progress.stageStats?.[stage.id];
+    if (!stats?.attempts) return null;
+    return { stage, accuracy: Math.round((stats.correct / stats.attempts) * 100), attempts: stats.attempts };
+  })
+    .filter(Boolean)
+    .sort((a, b) => a.accuracy - b.accuracy || b.attempts - a.attempts)
+    .slice(0, 5);
+  area.innerHTML = `
+    <div class="reward-meta">已完成 <strong>${summary.completedStages}/79</strong> 關 ・ 六上 XP <strong>${summary.xp}/9900</strong></div>
+    <p class="unit-meta">目前關卡：${summary.currentStage ? `第 ${summary.currentStage.order} 關 ${escapeHtml(summary.currentStage.topic)}` : "全部完成"}</p>
+    <div class="mission-list">${unitRows}</div>
+    <h3>需要加強的主題</h3>
+    ${
+      weaknesses.length
+        ? `<div class="mission-list">${weaknesses
+            .map(
+              ({ stage, accuracy, attempts }) =>
+                `<div class="mission-item"><span>${escapeHtml(stage.topic)}</span><span>${accuracy}%（${attempts} 題）</span></div>`
+            )
+            .join("")}</div>`
+        : `<div class="empty-hint">完成關卡練習後，這裡會依正確率列出可加強的主題。</div>`
+    }
+  `;
 }
 
 function renderLevelRewards(levelRewards) {

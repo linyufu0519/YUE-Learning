@@ -1,0 +1,58 @@
+<!doctype html>
+<meta charset="utf-8">
+<iframe id="page"></iframe>
+<output id="result">waiting</output>
+<script type="module">
+  import { COURSE_STAGES, COURSE_UNITS } from "../js/course-stages.js";
+
+  localStorage.setItem(
+    "yue_math_g6_v1",
+    JSON.stringify({
+      version: "kangxuan",
+      semesterProgress: {
+        courseId: "kangxuan-grade6-1",
+        completedActions: Object.fromEntries(
+          COURSE_STAGES.map((stage) => [
+            stage.id,
+            ["lesson", "practice", "mastery"],
+          ])
+        ),
+        claimedUnitRewards: COURSE_UNITS.map((unit) => unit.id),
+        stageStats: {},
+      },
+    })
+  );
+
+  const stages = COURSE_UNITS.map((unit) =>
+    COURSE_STAGES.find((stage) => stage.unitId === unit.id)
+  );
+  const frame = document.getElementById("page");
+  const verified = [];
+
+  async function verifyNext() {
+    const stage = stages[verified.length];
+    if (!stage) {
+      document.getElementById("result").textContent =
+        `stage-browser=verified:${verified.length}`;
+      return;
+    }
+    frame.src = `../practice.html?stage=${stage.id}`;
+  }
+
+  frame.addEventListener("load", () => {
+    setTimeout(() => {
+      const doc = frame.contentDocument;
+      const stage = stages[verified.length];
+      const prompt = doc.querySelector(".question-prompt")?.textContent || "";
+      if (!prompt.includes(stage.topic)) {
+        document.getElementById("result").textContent =
+          `stage-browser=failed:${stage.id}:${prompt}`;
+        return;
+      }
+      verified.push(stage.id);
+      verifyNext();
+    }, 250);
+  });
+
+  verifyNext();
+</script>

@@ -8,6 +8,7 @@ import {
   TOTAL_COURSE_XP,
   TOTAL_STAGE_XP,
   TOTAL_UNIT_REWARD_XP,
+  STAGE_ACTION_XP,
   calculateStageStatuses,
   getCourseProgress,
   getCurrentStage,
@@ -31,10 +32,20 @@ test("康軒六上課程有 11 大項、79 關，且關卡資料完整", () => {
 });
 
 test("每關 100 XP，加上單元獎勵後總計為 9900 XP", () => {
+  assert.deepEqual(STAGE_ACTION_XP, { lesson: 25, practice: 50, mastery: 25 });
   assert.equal(TOTAL_STAGE_XP, 7900);
   assert.equal(TOTAL_UNIT_REWARD_XP, 2000);
   assert.equal(TOTAL_COURSE_XP, 9900);
   assert.deepEqual(COURSE_UNITS.map((unit) => unit.rewardXp), [200, 200, 200, 200, 200, 100, 200, 200, 200, 200, 100]);
+});
+
+test("完整作答量依11大項合計790題", () => {
+  const expectedQuestionCounts = [80, 90, 70, 80, 70, 40, 70, 70, 80, 80, 60];
+  assert.deepEqual(
+    COURSE_UNITS.map((unit) => unit.stageCount * 10),
+    expectedQuestionCounts
+  );
+  assert.equal(expectedQuestionCounts.reduce((sum, count) => sum + count, 0), 790);
 });
 
 test("可依單元查詢關卡，並正確計算目前關、下一關與邊界狀態", () => {

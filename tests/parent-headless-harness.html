@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<iframe id="page" src="../parent.html"></iframe>
+<output id="result">waiting</output>
+<script>
+  const frame = document.getElementById("page");
+  frame.addEventListener("load", () => {
+    const doc = frame.contentDocument;
+    const password = doc.getElementById("txt-parent-password");
+    if (!password) return;
+    password.value = "8888";
+    doc.getElementById("parent-login-form").dispatchEvent(
+      new Event("submit", { bubbles: true, cancelable: true })
+    );
+    setTimeout(() => {
+      const summary = doc.getElementById("semester-stage-summary");
+      const text = summary?.textContent || "";
+      document.getElementById("result").textContent =
+        !doc.getElementById("parent-dashboard").hidden &&
+        text.includes("已完成") &&
+        text.includes("單元") &&
+        text.includes("需要加強的主題")
+          ? "parent-stage-dashboard=verified"
+          : `parent-stage-dashboard=failed:${text}`;
+    }, 500);
+  });
+</script>

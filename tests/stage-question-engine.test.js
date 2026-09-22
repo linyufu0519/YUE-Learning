@@ -33,14 +33,34 @@ test("79 關的每種難度都能產生三種概念與必要題目欄位", () =>
 });
 
 test("每關、每難度可產生至少 50 題唯一且答案與解析皆不同的有效題目", () => {
+  let generatedVariations = 0;
   for (const stage of COURSE_STAGES) {
     for (const difficulty of STAGE_DIFFICULTIES) {
       const questions = generateStageQuestionPool(stage.id, difficulty);
+      generatedVariations += questions.length;
       assert.equal(questions.length, 50);
       assert.equal(new Set(questions.map((question) => question.id)).size, 50);
       assert.equal(new Set(questions.map((question) => question.answer)).size, 50);
       assert.equal(new Set(questions.map((question) => question.explanation)).size, 50);
     }
+  }
+  assert.equal(generatedVariations, 79 * 3 * 50);
+  assert.ok(generatedVariations >= 3950);
+});
+
+test("每關題目明確標示來源主題，避免同單元關卡混淆", () => {
+  for (const stage of COURSE_STAGES) {
+    const questions = [0, 1, 2].map((index) =>
+      generateStageQuestion(stage.id, "medium", index)
+    );
+    assert.ok(
+      questions.every(
+        (question) =>
+          question.prompt.includes(stage.topic) &&
+          question.concept.includes(stage.topic)
+      ),
+      `${stage.id} 題目未標示關卡主題`
+    );
   }
 });
 
