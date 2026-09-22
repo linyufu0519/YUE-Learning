@@ -28,9 +28,9 @@ const OPERATION_EVIDENCE = {
   整數除以分數: /\d+ ÷ \d+\/\d+|整數除以分數/,
   分數除以整數: /\d+\/\d+ ÷ \d+|分數除以整數/,
   同分母分數除法: /同分母|\/\d+ ÷ \d+\/\d+/,
-  異分母分數除法: /兩分母不同|異分母|\/\d+ ÷ \d+\/\d+/,
+  異分母分數除法: /兩分母不同|異分母|每份用|\/\d+ ÷ \d+\/\d+/,
   帶分數除法: /又\d+\/\d+|帶分數/,
-  商的意義: /平均分成|每.+裝一份|包含幾份/,
+  商的意義: /平均分成|每.+裝|包含幾份|可裝/,
   單位量: /單位量|每份/,
   數列規律: /第.+項|首項/,
   圖形規律: /圖形|第.+項/,
@@ -77,7 +77,7 @@ const OPERATION_EVIDENCE = {
   實際距離: /實際/,
   長度換算: /公分|公尺|公里/,
   面積變化: /面積.+倍|面積倍率/,
-  後半冊綜合: /圓周長|平均速率|比例尺/,
+  後半冊綜合: /圓周長|一圈周長|平均速率|比例尺/,
 };
 
 const SCENARIO_EVIDENCE = {
@@ -127,17 +127,31 @@ test("公因數只做共同整除，不會因 variant 誤出最小公倍數", ()
   }
 });
 
-test("所有 hard 題使用符合主題且可輪替的生活情境，不再套用通用彩帶開場", () => {
+test("所有 hard 題由生成器產生單一完整情境，不再拼接第二層主角與無關套語", () => {
+  const actorPattern = /小玥|小安|志明|雅婷|老師|爸爸|媽媽|店長/g;
   for (const stage of COURSE_STAGES) {
     const contract = STAGE_STRATEGY_METADATA[stage.id];
     assert.ok(SCENARIO_EVIDENCE[contract.scenarioProfile], `${stage.id} 缺少情境契約`);
-    const questions = [0, 1, 2].map((index) => generateStageQuestion(stage.id, "hard", index));
+    const questions = generateStageQuestionPool(stage.id, "hard", 50);
     for (const question of questions) {
-      assert.doesNotMatch(question.prompt, /準備彩帶時|遇到這題/);
-      assert.match(question.prompt, SCENARIO_EVIDENCE[contract.scenarioProfile], `${stage.id} 情境與主題不符`);
+      const actors = question.prompt.match(actorPattern) || [];
+      assert.ok(actors.length <= 1, `${question.id} 出現多個主角：${actors.join("、")}`);
+      assert.doesNotMatch(question.prompt, /準備彩帶時|遇到這題|破解數字密碼|數學角整理|貼到分類板/);
+      assert.doesNotMatch(question.prompt, /個(?:果汁|緞帶|盆栽)排成每排/);
+      assert.match(`${question.prompt} ${question.hint} ${question.explanation}`, OPERATION_EVIDENCE[contract.operationTopic], `${question.id} 情境與主題不符`);
+      assert.doesNotMatch(`${question.prompt} ${question.answer}`, /NaN|Infinity/);
     }
-    const openings = questions.map((question) => question.prompt.split("：").slice(0, -1).join("："));
-    assert.equal(new Set(openings).size, 3, `${stage.id} 的 hard 情境沒有輪替`);
+  }
+});
+
+test("質數與合數 hard 題明確交代兩步驟、排列物與每排條件", () => {
+  const stage = COURSE_STAGES.find((item) => item.topic === "質數與合數");
+  for (let index = 2; index < 50; index += 9) {
+    const question = generateStageQuestion(stage.id, "hard", index);
+    assert.match(question.prompt, /積木每排放 \d+ 個/);
+    assert.match(question.prompt, /先排好 \d+ 個積木/);
+    assert.match(question.prompt, /再多排 2 排（每排仍放 \d+ 個）/);
+    assert.match(question.prompt, /請先算總數，再判斷/);
   }
 });
 
@@ -235,7 +249,7 @@ test("難度結構、payload schema、選擇題唯一正解皆維持相容", () 
     const hard = generateStageQuestion(stage.id, "hard", 0);
     assert.match(easy.prompt, /直接計算/);
     assert.match(medium.prompt, /反推與換算/);
-    assert.match(hard.prompt, /兩步驟生活應用/);
+    assert.match(hard.prompt, /生活應用與挑戰/);
     assert.notEqual(easy.prompt.replace(/\d+(?:\.\d+)?/g, "#"), medium.prompt.replace(/\d+(?:\.\d+)?/g, "#"));
     assert.notEqual(medium.prompt.replace(/\d+(?:\.\d+)?/g, "#"), hard.prompt.replace(/\d+(?:\.\d+)?/g, "#"));
     for (const question of [easy, medium, hard]) {
@@ -310,9 +324,9 @@ test("使用者體驗驗收：79 關每組 10 題具認知操作配額，不是�
         Math.max(...Object.values(difficultyCounts)),
         `${stage.id}/${difficulty} 未以所選難度為主`
       );
-      assert.ok(questions.some((question) => question.prompt.includes("請判斷是否正確")), `${stage.id}/${difficulty} 缺少判斷題`);
+      assert.ok(questions.some((question) => question.prompt.includes("再判斷答案")), `${stage.id}/${difficulty} 缺少判斷題`);
       assert.ok(questions.some((question) => question.prompt.includes("請選出正確答案")), `${stage.id}/${difficulty} 缺少選擇轉換題`);
-      assert.ok(questions.some((question) => !/請判斷是否正確|請選出正確答案/.test(question.prompt)), `${stage.id}/${difficulty} 缺少原始解題`);
+      assert.ok(questions.some((question) => !/再判斷答案|請選出正確答案/.test(question.prompt)), `${stage.id}/${difficulty} 缺少原始解題`);
       assert.ok(
         questions.every((question) => !question.choices?.some((choice) => /NaN|Infinity/.test(choice))),
         `${stage.id}/${difficulty} 選項含非法數值`

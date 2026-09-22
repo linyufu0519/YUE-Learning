@@ -4,9 +4,9 @@ import { COURSE_STAGES, getCourseStage } from "./course-stages.js";
 export const STAGE_DIFFICULTIES = Object.freeze(["easy", "medium", "hard"]);
 
 const PEOPLE = Object.freeze(["小玥", "小安", "志明", "雅婷", "老師", "爸爸", "媽媽", "店長"]);
-const OBJECTS = Object.freeze(["彩帶", "果汁", "餅乾", "貼紙", "緞帶", "積木", "盆栽", "卡片"]);
+const OBJECTS = Object.freeze(["積木", "卡片", "貼紙", "餅乾"]);
 const PLACES = Object.freeze(["校園", "公園", "文具店", "圖書館", "運動場", "園遊會"]);
-const LEVEL_LABEL = Object.freeze({ easy: "直接計算", medium: "反推與換算", hard: "兩步驟生活應用" });
+const LEVEL_LABEL = Object.freeze({ easy: "直接計算", medium: "反推與換算", hard: "生活應用與挑戰" });
 const COGNITIVE_MODES = Object.freeze(["solve", "select", "verify"]);
 
 function hashSeed(text) {
@@ -64,7 +64,9 @@ function format(value) {
 function frac(numerator, denominator) {
   if (denominator === 0) throw new RangeError("分母不可為 0。");
   const divisor = gcd(numerator, denominator);
-  return `${numerator / divisor}/${denominator / divisor}`;
+  const reducedNumerator = numerator / divisor;
+  const reducedDenominator = denominator / divisor;
+  return reducedDenominator === 1 ? String(reducedNumerator) : `${reducedNumerator}/${reducedDenominator}`;
 }
 
 function mixed(numerator, denominator) {
@@ -127,12 +129,12 @@ function applyCognitiveMode(generated, cognitiveMode, index, rng) {
   }
   const proposedAnswer = Math.floor(index / 9) % 2 === 0 ? String(generated.answer) : wrongAnswerFor(generated);
   const isCorrect = proposedAnswer === String(generated.answer);
-  transformed.prompt = `同學算出「${generated.prompt}」的答案是 ${proposedAnswer}，請判斷是否正確。`;
+  transformed.prompt = `先完成「${generated.prompt}」，再判斷答案 ${proposedAnswer} 是否正確。`;
   transformed.answer = isCorrect ? "正確" : "不正確";
   transformed.type = "choice";
   transformed.choices = ["正確", "不正確"];
   transformed.hint = `先自己完成原題，再比較同學寫的 ${proposedAnswer}。`;
-  transformed.explanation = `${generated.explanation}所以同學的答案${isCorrect ? "正確" : "不正確"}。`;
+  transformed.explanation = `${generated.hint}${generated.explanation}所以指定答案${isCorrect ? "正確" : "不正確"}。`;
   return transformed;
 }
 
@@ -141,7 +143,7 @@ function parameters(stageId, difficulty, index, rng) {
   const multipliers = [1, 3, 7, 9, 11, 13, 17, 19, 21, 23, 27, 29, 31, 33, 37, 39, 41, 43, 47, 49];
   const sample = (index * multipliers[permutationSeed % multipliers.length] + permutationSeed % 50) % 50;
   return {
-    n: 2 + Math.floor(sample / 10),
+    n: 2 + (sample % 18),
     a: 3 + ((sample * 5 + Math.floor(sample / 10)) % 15),
     b: 2 + (sample % 10),
     c: 3 + ((sample * 7 + Math.floor(sample / 10)) % 10),
@@ -397,7 +399,7 @@ function factorGenerator(topic, operationKey, difficulty, variant, v) {
       difficulty,
       () => result(operationKey, "choice", `${composite} 可寫成 ${v.n} × ${v.b + 1}，所以它是質數還是合數？`, "合數", "可以寫成兩個大於 1 的整數相乘，就是合數。", `${composite} = ${v.n} × ${v.b + 1}，所以是合數。`, ["質數", "合數"]),
       () => result(operationKey, "choice", `某合數等於 ${v.n} × ${v.b + 1}，下列何者一定是它的因數？`, v.n, "乘法式中的乘數都是因數。", `${composite} ÷ ${v.n} = ${v.b + 1}。`, [String(v.n), String(v.n + 1), String(v.n + 2), String(v.n + 3)]),
-      () => result(operationKey, "choice", `${v.person}把 ${composite} 個${v.object}排成每排 ${v.n} 個，又增加 2 排，共 ${applicationTotal} 個；${applicationTotal} 是質數還是合數？`, "合數", `總數可寫成 ${v.n} × ${v.b + 3}。`, `${applicationTotal} = ${v.n} × ${v.b + 3}，可寫成兩個大於 1 的整數相乘，所以是合數。`, ["質數", "合數"])
+      () => result(operationKey, "choice", `${v.person}把積木每排放 ${v.n} 個，先排好 ${composite} 個積木，再多排 2 排（每排仍放 ${v.n} 個），一共是 ${applicationTotal} 個。請先算總數，再判斷 ${applicationTotal} 是質數還是合數。`, "合數", `第一步算總數，第二步判斷是否能寫成兩個大於 1 的整數相乘。`, `${composite} + 2 × ${v.n} = ${applicationTotal}；${applicationTotal} = ${v.n} × ${v.b + 3}，所以是合數。`, ["質數", "合數"])
     );
   }
   if (topic === "質因數分解" || topic === "短除法") {
@@ -489,7 +491,7 @@ function fractionGenerator(topic, operationKey, difficulty, variant, v) {
       () => result(operationKey, "input", `□ ÷ ${divisorNumerator}/${d2} = ${answer}，原分數的分母是 ${d1}，分子是多少？`, numerator, "商乘除數還原被除數。", `${answer} × ${divisorNumerator}/${d2} = ${frac(numerator, d1)}。`),
       () => {
         const doubled = frac(numerator * d2 * 2, d1 * divisorNumerator);
-        return result(operationKey, "input", `${v.person}有 ${numerator}/${d1} 公斤材料，每份用 ${divisorNumerator}/${d2} 公斤；可做的份數再乘 2，結果是多少？`, doubled, "先做異分母分數除法，再乘 2。", `${answer} × 2 = ${doubled}。`);
+        return result(operationKey, "input", `${v.person}有 ${frac(numerator, d1)} 公斤麵粉，每份用 ${frac(divisorNumerator, d2)} 公斤。先算可分成幾份，再把份數乘 2，結果是多少？`, doubled, "先做異分母分數除法，再乘 2。", `${answer} × 2 = ${doubled}。`);
       }
     );
   }
@@ -532,8 +534,8 @@ function relationGenerator(topic, operationKey, difficulty, variant, v) {
     return complexity(
       difficulty,
       () => result(operationKey, "input", `長 ${intervals * step} 公尺直線每隔 ${step} 公尺放一盆花，兩端都放，共幾盆？`, intervals + 1, "直線兩端都放，物件數比間隔數多 1。", `${intervals * step} ÷ ${step} + 1 = ${intervals + 1}。`),
-      () => result(operationKey, "input", `直線兩端都有${v.object}，共 ${intervals + 1} 個、間距 ${step} 公尺，全長多少公尺？`, intervals * step, "先用物件數減 1 求間隔數。", `(${intervals + 1} - 1) × ${step} = ${intervals * step}。`),
-      () => result(operationKey, "input", `${v.person}繞${v.place}一圈每隔 ${step} 公尺放 1 個${v.object}，共 ${intervals} 個；走兩圈共幾公尺？`, intervals * step * 2, "封閉路線物件數等於間隔數，再乘兩圈。", `${intervals} × ${step} × 2 = ${intervals * step * 2}。`)
+      () => result(operationKey, "input", `直線兩端都有標誌，共 ${intervals + 1} 個、相鄰標誌間距 ${step} 公尺，全長多少公尺？`, intervals * step, "先用標誌數減 1 求間隔數。", `(${intervals + 1} - 1) × ${step} = ${intervals * step}。`),
+      () => result(operationKey, "input", `${v.person}沿${v.place}的封閉步道每隔 ${step} 公尺放 1 個標誌，共放 ${intervals} 個。沿步道走兩圈共幾公尺？`, intervals * step * 2, "封閉路線的標誌數等於間隔數，先算一圈長度，再乘 2。", `${intervals} × ${step} × 2 = ${intervals * step * 2}。`)
     );
   }
   if (topic === "和不變" || topic === "差不變" || topic === "積不變" || topic === "商不變") {
@@ -597,7 +599,7 @@ function decimalGenerator(topic, operationKey, difficulty, variant, v) {
     return complexity(
       difficulty,
       () => result(operationKey, "input", `把 ${dividend} 估成最接近的整十數後除以 10，估商是多少？`, Math.round(dividend / 10), "先四捨五入到整十數。", `${dividend} 約為 ${Math.round(dividend / 10) * 10}，估商 ${Math.round(dividend / 10)}。`),
-      () => result(operationKey, "input", `某除法以 ${Math.round(dividend / 10) * 10} ÷ 10 估算，估商為 ${Math.round(dividend / 10)}；被除數最接近哪個整十數？`, Math.round(dividend / 10) * 10, "估商乘除數還原估計被除數。", `${Math.round(dividend / 10)} × 10 = ${Math.round(dividend / 10) * 10}。`),
+      () => result(operationKey, "input", `把被除數 ${dividend} 估成 ${Math.round(dividend / 10) * 10} 後計算；原數與估計數相差多少？`, Math.abs(dividend - Math.round(dividend / 10) * 10), "比較原數與最接近的整十數。", `|${dividend} - ${Math.round(dividend / 10) * 10}| = ${Math.abs(dividend - Math.round(dividend / 10) * 10)}。`),
       () => result(operationKey, "input", `${v.person}帶 ${dividend} 元，每件約 10 元，先估可買 ${Math.round(dividend / 10)} 件，再少買 2 件，買幾件？`, Math.round(dividend / 10) - 2, "先估商，再扣掉 2 件。", `${Math.round(dividend / 10)} - 2 = ${Math.round(dividend / 10) - 2}。`)
     );
   }
@@ -760,7 +762,7 @@ function areaGenerator(topic, operationKey, difficulty, variant, v) {
       difficulty,
       () => result(operationKey, "input", `半徑 ${radius} 公分的 1/${parts} 圓面積是多少？（π 取 3.14）`, part, "先求整圓面積，再除以份數。", `${radius} × ${radius} × 3.14 ÷ ${parts} = ${part}。`),
       () => result(operationKey, "input", `1/${parts} 圓面積 ${part} 平方公分，整圓面積多少？`, round(part * parts), "部分面積乘份數。", `${part} × ${parts} = ${round(part * parts)}。`),
-      () => result(operationKey, "input", `${v.person}鋪半徑 ${radius} 公尺的 1/${parts} 圓，再加鋪 ${radius} 平方公尺，共鋪多少？`, round(part + radius), "先求部分圓面積，再加額外面積。", `${part} + ${radius} = ${round(part + radius)}。`)
+      () => result(operationKey, "input", `${v.person}鋪半徑 ${radius} 公尺的 1/${parts} 圓，再加鋪 ${radius} 平方公尺，共鋪多少平方公尺？`, round(part + radius), "先求部分圓面積，再加額外面積。", `${part} + ${radius} = ${round(part + radius)}。`)
     );
   }
   if (topic === "組合圖形") {
@@ -770,14 +772,14 @@ function areaGenerator(topic, operationKey, difficulty, variant, v) {
       difficulty,
       () => result(operationKey, "input", `半徑 ${radius} 與 ${smallRadius} 公分的兩圓面積相加是多少？（π 取 3.14）`, round(area + smallArea), "分別求兩圓面積再相加。", `${area} + ${smallArea} = ${round(area + smallArea)}。`),
       () => result(operationKey, "input", `大圓面積 ${area}、小圓面積 ${smallArea} 平方公分，環形面積是多少？`, round(area - smallArea), "大圓面積減小圓面積。", `${area} - ${smallArea} = ${round(area - smallArea)}。`),
-      () => result(operationKey, "input", `${v.person}鋪大圓 ${area} 平方公尺，挖去小圓 ${smallArea} 平方公尺後，再加鋪 ${radius} 平方公尺，共多少？`, round(area - smallArea + radius), "先相減形成組合圖形，再加額外區域。", `${area} - ${smallArea} + ${radius} = ${round(area - smallArea + radius)}。`)
+      () => result(operationKey, "input", `${v.person}鋪大圓 ${area} 平方公尺，挖去小圓 ${smallArea} 平方公尺後，再加鋪 ${radius} 平方公尺，共多少平方公尺？`, round(area - smallArea + radius), "先相減形成組合圖形，再加額外區域。", `${area} - ${smallArea} + ${radius} = ${round(area - smallArea + radius)}。`)
     );
   }
   return complexity(
     difficulty,
     () => result(operationKey, "input", `半徑 ${radius} 公分的圓面積是多少？（π 取 3.14）`, area, "圓面積 = 半徑 × 半徑 × 3.14。", `${radius} × ${radius} × 3.14 = ${area}。`),
     () => result(operationKey, "input", `圓面積 ${area} 平方公分，面積除以 3.14 後是多少？`, radius * radius, "先反推半徑平方。", `${area} ÷ 3.14 = ${radius * radius}。`),
-    () => result(operationKey, "input", `${v.person}鋪半徑 ${radius} 公尺的圓形區域，再加鋪 ${radius} 平方公尺，共多少？`, round(area + radius), "先求圓面積，再加額外面積。", `${area} + ${radius} = ${round(area + radius)}。`)
+    () => result(operationKey, "input", `${v.person}鋪半徑 ${radius} 公尺的圓形區域，再加鋪 ${radius} 平方公尺，共多少平方公尺？`, round(area + radius), "先求圓面積，再加額外面積。", `${area} + ${radius} = ${round(area + radius)}。`)
   );
 }
 
@@ -789,10 +791,21 @@ function speedGenerator(topic, operationKey, difficulty, variant, v) {
     const unit = topic === "時速換算" ? "小時" : topic === "分速換算" ? "分鐘" : "秒";
     const conversion = topic === "時速換算" ? 60 : topic === "分速換算" ? 60 : 60;
     const target = topic === "時速換算" ? "分鐘" : topic === "分速換算" ? "秒" : "分鐘";
+    const extra = v.n;
+    const converted = topic === "秒速換算"
+      ? round((time * 60 + extra) / conversion)
+      : time * conversion + extra;
     return complexity(
       difficulty,
       () => result(operationKey, "input", `每${unit}走 ${speed} 公尺，${time} ${unit}走多少公尺？`, distance, "距離 = 速率 × 時間。", `${speed} × ${time} = ${distance}。`),
-      () => result(operationKey, "input", `${time} ${unit}等於多少${target}？${topic === "秒速換算" ? "（取到小數第 2 位）" : ""}`, topic === "秒速換算" ? round(time / conversion) : time * conversion, topic === "秒速換算" ? "60 秒 = 1 分鐘。" : `1 ${unit} = 60 ${target}。`, topic === "秒速換算" ? `${time} ÷ 60 = ${round(time / conversion)}（分鐘）。` : `${time} × 60 = ${time * conversion}（${target}）。`),
+      () => result(operationKey, "input", topic === "秒速換算"
+        ? `${time * 60} 秒再加 ${extra} 秒，合計多少分鐘？（取到小數第 2 位）`
+        : `${time} ${unit}再加 ${extra} ${target}，合計多少${target}？`,
+      converted,
+      topic === "秒速換算" ? "先合併秒數，再除以 60。" : `先把${unit}換成${target}，再加剩餘${target}。`,
+      topic === "秒速換算"
+        ? `(${time * 60} + ${extra}) ÷ 60 = ${converted}（分鐘）。`
+        : `${time} × 60 + ${extra} = ${converted}（${target}）。`),
       () => result(operationKey, "input", `${v.person}以每${unit} ${speed} 公尺前進 ${time} ${unit}，再前進 ${speed} 公尺，共走多少？`, distance + speed, "先用速率乘時間，再加第二段距離。", `${speed} × ${time} + ${speed} = ${distance + speed}。`)
     );
   }
@@ -840,10 +853,12 @@ function scaleGenerator(topic, operationKey, difficulty, variant, v) {
     const changed = shrink ? original / factor : original * factor;
     const areaFactor = factor * factor;
     if (topic === "面積變化") {
+      const baseArea = v.n * v.n;
+      const changedArea = baseArea * areaFactor;
       return complexity(
         difficulty,
-        () => result(operationKey, "input", `邊長放大 ${factor} 倍，面積變為原來幾倍？`, areaFactor, "面積倍率是邊長倍率的平方。", `${factor} × ${factor} = ${areaFactor}。`),
-        () => result(operationKey, "input", `面積變為原來 ${areaFactor} 倍，邊長放大幾倍？`, factor, "面積倍率開平方得到邊長倍率。", `${factor} × ${factor} = ${areaFactor}。`),
+        () => result(operationKey, "input", `原正方形邊長 ${v.n} 公分；邊長放大 ${factor} 倍時，面積變為原來幾倍？`, areaFactor, "面積倍率是邊長倍率的平方。", `${factor} × ${factor} = ${areaFactor}。`),
+        () => result(operationKey, "input", `原面積 ${baseArea} 平方公分，放大後面積 ${changedArea} 平方公分；邊長放大幾倍？`, factor, "先求面積倍率，再開平方得到邊長倍率。", `${changedArea} ÷ ${baseArea} = ${areaFactor}，${factor} × ${factor} = ${areaFactor}。`),
         () => result(operationKey, "input", `原正方形面積 ${original * original} 平方公分，邊長放大 ${factor} 倍後，新面積是多少？`, original * original * areaFactor, "先求面積倍率，再乘原面積。", `${original * original} × ${areaFactor} = ${original * original * areaFactor}。`)
       );
     }
@@ -883,7 +898,7 @@ function scaleGenerator(topic, operationKey, difficulty, variant, v) {
   }
   return complexity(
     difficulty,
-    () => result(operationKey, "input", `比例尺 1：${scale} 表示圖上 1 公分代表實際多少公分？`, scale, "比例尺後項就是實際距離。", `圖上 1 公分代表實際 ${scale} 公分。`),
+    () => result(operationKey, "input", `比例尺 1：${scale} 的地圖上，${map} 公分代表實際 ${real} 公分。圖上 1 公分代表實際多少公分？`, scale, "比例尺後項就是圖上 1 公分代表的實際距離。", `圖上 1 公分代表實際 ${scale} 公分。`),
     () => result(operationKey, "input", `圖上 ${map} 公分代表實際 ${real} 公分，比例尺是 1：多少？`, scale, "實際距離除以圖上距離。", `${real} ÷ ${map} = ${scale}。`),
     () => result(operationKey, "input", `${v.person}在${v.place}地圖量兩段路，各 ${map} 與 ${factor} 公分，比例尺 1：${scale}，實際總長多少公分？`, (map + factor) * scale, "先加圖上兩段距離，再乘比例尺後項。", `(${map} + ${factor}) × ${scale} = ${(map + factor) * scale}。`)
   );
@@ -944,10 +959,6 @@ function buildQuestion(stage, difficulty, index, generated, rng) {
   const profile = STAGE_STRATEGY_METADATA[stage.id].scenarioProfile;
   const openers = SCENARIO_OPENERS[profile];
   if (!openers) throw new RangeError(`關卡缺少情境敘述：${stage.id}`);
-  const scenario = openers[index % openers.length](
-    PEOPLE[index % PEOPLE.length],
-    PLACES[Math.floor(index / PEOPLE.length) % PLACES.length]
-  );
   const question = {
     id: `${stage.id}-${difficulty}-${index}`,
     stageId: stage.id,
@@ -955,7 +966,7 @@ function buildQuestion(stage, difficulty, index, generated, rng) {
     difficulty,
     concept: `${stage.topic}｜${generated.concept}`,
     type: generated.type,
-    prompt: `【${LEVEL_LABEL[difficulty]}｜${stage.topic}】${scenario}：${generated.prompt}`,
+    prompt: `【${LEVEL_LABEL[difficulty]}｜${stage.topic}】${generated.prompt}`,
     answer,
     hint: generated.hint,
     explanation: generated.explanation,
