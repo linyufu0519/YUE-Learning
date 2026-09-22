@@ -60,8 +60,8 @@ const OPERATION_EVIDENCE = {
   反推半徑: /反推半徑|半徑是多少|半徑平方/,
   圓面積: /圓面積/,
   半徑平方: /半徑平方/,
-  扇形面積: /1\/\d+ 圓面積|部分圓面積/,
-  半圓面積: /1\/2 圓面積|部分圓面積/,
+  扇形面積: /1\/\d+ 圓(?:形區域|面積)|部分圓面積/,
+  半圓面積: /1\/2 圓(?:形區域|面積)|部分圓面積/,
   組合圖形: /兩圓|環形|大圓/,
   速率意義: /速率|公里\/時/,
   距離: /距離|共走/,
@@ -144,14 +144,38 @@ test("所有 hard 題由生成器產生單一完整情境，不再拼接第二�
   }
 });
 
-test("質數與合數 hard 題明確交代兩步驟、排列物與每排條件", () => {
+test("質數與合數 hard 題以因數證據判斷，不以無關總數計算或明示排列洩漏答案", () => {
   const stage = COURSE_STAGES.find((item) => item.topic === "質數與合數");
-  for (let index = 2; index < 50; index += 9) {
+  for (let index = 0; index < 50; index += 1) {
     const question = generateStageQuestion(stage.id, "hard", index);
-    assert.match(question.prompt, /積木每排放 \d+ 個/);
-    assert.match(question.prompt, /先排好 \d+ 個積木/);
-    assert.match(question.prompt, /再多排 2 排（每排仍放 \d+ 個）/);
-    assert.match(question.prompt, /請先算總數，再判斷/);
+    assert.match(`${question.prompt} ${question.hint} ${question.explanation}`, /因數|整除|剛好分完/);
+    assert.doesNotMatch(question.prompt, /先排好|再多排|一共是|可寫成 \d+ × \d+，所以/);
+  }
+});
+
+test("核心概念品質清單：代表性 hard 題的每一步都服務同一考點", () => {
+  const stageFor = (topic) => COURSE_STAGES.find((stage) => stage.topic === topic).id;
+  const checks = [
+    ["質數與合數", /因數|剛好分完/, /再多排|先算總數/],
+    ["異分母分數除法", /每份|可以分成幾份/, /份數再乘|貼紙|冰塊/],
+    ["連比", /按.+：.+：.+分三份|甲：乙：丙/, /又多準備|各增加/],
+    ["圓周率", /輪子完整滾動|圓周長/, /再前進|再加/],
+    ["平均速率", /第一段.+第二段|平均速率/, /再多走|再加/],
+    ["比例尺", /地圖.+比例尺|圖上.+實際/, /再增加|再加/],
+  ];
+  for (const [topic, required, forbidden] of checks) {
+    const questions = generateStageQuestionPool(stageFor(topic), "hard", 50);
+    assert.ok(questions.every((question) => required.test(`${question.prompt} ${question.hint} ${question.explanation}`)), `${topic} 核心概念不足`);
+    assert.ok(questions.every((question) => !forbidden.test(question.prompt)), `${topic} 含無關拼接步驟`);
+  }
+});
+
+test("全部 hard 題不得使用已知的無關算術拼接樣板", () => {
+  const forbidden = /每瓶貼 2 張|每杯放 2 顆|份數再乘 2|再少買 2 件|又多買|再把半徑(?:加|增加) 2|再加鋪 \d+ 平方|再多準備|兩項各增加 2|再前進 \d+ 公分/;
+  for (const stage of COURSE_STAGES) {
+    for (const question of generateStageQuestionPool(stage.id, "hard", 50)) {
+      assert.doesNotMatch(question.prompt, forbidden, question.id);
+    }
   }
 });
 

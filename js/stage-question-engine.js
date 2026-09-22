@@ -53,6 +53,14 @@ function lcm(left, right) {
   return Math.abs(left * right) / gcd(left, right);
 }
 
+function divisors(value) {
+  const result = [];
+  for (let divisor = 1; divisor <= value; divisor += 1) {
+    if (value % divisor === 0) result.push(divisor);
+  }
+  return result;
+}
+
 function round(value, digits = 2) {
   return Number(value.toFixed(digits));
 }
@@ -394,12 +402,18 @@ function factorGenerator(topic, operationKey, difficulty, variant, v) {
   const actualLcm = lcm(left, right);
   if (topic === "質數與合數") {
     const composite = v.n * (v.b + 1);
-    const applicationTotal = composite + v.n * 2;
+    const factorList = divisors(composite);
+    const nonFactor = [2, 3, 5, 7, 11, 13].find((value) => composite % value !== 0) || composite + 1;
+    const hardQuestions = [
+      () => result(operationKey, "choice", `${v.person}有 ${composite} 個積木，想平均分成每組至少 2 個。下列哪個每組數量可剛好分完，並能證明 ${composite} 是合數？`, v.n, "找一個大於 1、且小於原數的因數。", `${composite} ÷ ${v.n} = ${v.b + 1}，因此 ${v.n} 是非平凡因數，${composite} 是合數。`, [String(v.n), String(nonFactor), String(nonFactor + 2), String(composite - 1)]),
+      () => result(operationKey, "input", `${composite} 的所有因數共有幾個？請先列出因數，再判斷它不是質數。`, factorList.length, "成對尋找能整除原數的數。", `${composite} 的因數是 ${factorList.join("、")}，共有 ${factorList.length} 個；因數超過 2 個，所以是合數。`),
+      () => result(operationKey, "choice", `有人說「${composite} 是質數」。下列哪個反例因數能證明這個說法錯誤？`, v.n, "只要找到一個不是 1 或原數的因數，就能否定質數說法。", `${composite} ÷ ${v.n} = ${v.b + 1}，所以 ${v.n} 是反例因數。`, [String(v.n), String(nonFactor), "1", String(composite)])
+    ];
     return complexity(
       difficulty,
       () => result(operationKey, "choice", `${composite} 可寫成 ${v.n} × ${v.b + 1}，所以它是質數還是合數？`, "合數", "可以寫成兩個大於 1 的整數相乘，就是合數。", `${composite} = ${v.n} × ${v.b + 1}，所以是合數。`, ["質數", "合數"]),
       () => result(operationKey, "choice", `某合數等於 ${v.n} × ${v.b + 1}，下列何者一定是它的因數？`, v.n, "乘法式中的乘數都是因數。", `${composite} ÷ ${v.n} = ${v.b + 1}。`, [String(v.n), String(v.n + 1), String(v.n + 2), String(v.n + 3)]),
-      () => result(operationKey, "choice", `${v.person}把積木每排放 ${v.n} 個，先排好 ${composite} 個積木，再多排 2 排（每排仍放 ${v.n} 個），一共是 ${applicationTotal} 個。請先算總數，再判斷 ${applicationTotal} 是質數還是合數。`, "合數", `第一步算總數，第二步判斷是否能寫成兩個大於 1 的整數相乘。`, `${composite} + 2 × ${v.n} = ${applicationTotal}；${applicationTotal} = ${v.n} × ${v.b + 3}，所以是合數。`, ["質數", "合數"])
+      hardQuestions[variant]
     );
   }
   if (topic === "質因數分解" || topic === "短除法") {
@@ -447,7 +461,7 @@ function fractionGenerator(topic, operationKey, difficulty, variant, v) {
       difficulty,
       () => result(operationKey, "input", `${v.n}/${d1} 的倒數分子與分母的和是多少？`, v.n + d1, "倒數會交換分子、分母。", `倒數是 ${d1}/${v.n}，兩項和為 ${v.n + d1}。`),
       () => result(operationKey, "input", `某分數的倒數是 ${d1}/${v.n}，原分數的分子是多少？`, v.n, "再交換一次分子與分母。", `原分數是 ${v.n}/${d1}。`),
-      () => result(operationKey, "input", `${v.person}先把 ${v.n}/${d1} 乘以它的倒數，再加 ${integer}，結果是多少？`, integer + 1, "非零數乘倒數為 1，再做加法。", `1 + ${integer} = ${integer + 1}。`)
+      () => result(operationKey, "input", `${v.person}要讓 ${v.n}/${d1} 與另一個分數相乘得到 1，另一個分數的分子與分母的和是多少？`, v.n + d1, "乘積為 1 時，另一個分數就是倒數。", `倒數是 ${d1}/${v.n}，分子與分母的和是 ${v.n + d1}。`)
     );
   }
   if (topic === "整數除以分數") {
@@ -458,7 +472,7 @@ function fractionGenerator(topic, operationKey, difficulty, variant, v) {
       difficulty,
       () => result(operationKey, "input", `${integer} ÷ ${numerator}/${denominator} = ？`, answer, "整數除以分數要乘以倒數。", `${integer} × ${denominator}/${numerator} = ${answer}。`),
       () => result(operationKey, "input", `□ ÷ ${numerator}/${denominator} = ${answer}，□ 是多少？`, integer, "商乘除數可還原被除數。", `${answer} × ${numerator}/${denominator} = ${integer}。`),
-      () => result(operationKey, "input", `${v.person}有 ${integer} 公升果汁，每瓶裝 ${numerator}/${denominator} 公升，裝滿後又各貼 2 張貼紙，共需幾張？`, answer * 2, "先用整數除以分數求瓶數，再乘貼紙數。", `${integer} ÷ ${numerator}/${denominator} × 2 = ${answer * 2}。`)
+      () => result(operationKey, "input", `${v.person}有 ${integer} 公升果汁，每瓶裝 ${numerator}/${denominator} 公升，可以裝滿幾瓶？`, answer, "用果汁總量除以每瓶容量。", `${integer} ÷ ${numerator}/${denominator} = ${answer}。`)
     );
   }
   if (topic === "分數除以整數") {
@@ -468,7 +482,7 @@ function fractionGenerator(topic, operationKey, difficulty, variant, v) {
       difficulty,
       () => result(operationKey, "input", `${numerator}/${d1} ÷ ${v.b} = ？`, answer, "分數除以整數等於乘整數的倒數。", `${numerator}/${d1} × 1/${v.b} = ${answer}。`),
       () => result(operationKey, "input", `□ ÷ ${v.b} = ${answer}，□ 是多少？`, frac(numerator, d1), "商乘整數可還原原分數。", `${answer} × ${v.b} = ${frac(numerator, d1)}。`),
-      () => result(operationKey, "input", `${v.person}把 ${numerator}/${d1} 公尺彩帶平均剪成 ${v.b} 段，每段再剪半，每小段幾公尺？`, frac(integer, d1 * 2), "先除以段數，再除以 2。", `${numerator}/${d1} ÷ ${v.b} ÷ 2 = ${frac(integer, d1 * 2)}。`)
+      () => result(operationKey, "input", `${v.person}把 ${numerator}/${d1} 公尺彩帶平均剪成 ${v.b} 段，每段長幾公尺？`, answer, "總長除以段數。", `${numerator}/${d1} ÷ ${v.b} = ${answer}。`)
     );
   }
   if (topic === "同分母分數除法") {
@@ -478,7 +492,7 @@ function fractionGenerator(topic, operationKey, difficulty, variant, v) {
       difficulty,
       () => result(operationKey, "input", `${numerator}/${d1} ÷ ${divisorNumerator}/${d1} = ？`, integer, "同分母分數相除，分母可約去。", `${numerator} ÷ ${divisorNumerator} = ${integer}。`),
       () => result(operationKey, "input", `${numerator}/${d1} ÷ □/${d1} = ${integer}，□ 是多少？`, divisorNumerator, "同分母時用分子反推。", `${numerator} ÷ ${integer} = ${divisorNumerator}。`),
-      () => result(operationKey, "input", `${v.person}有 ${numerator}/${d1} 公升果汁，每杯 ${divisorNumerator}/${d1} 公升，倒滿後每杯放 2 顆冰塊，共放幾顆？`, integer * 2, "先算包含幾杯，再乘每杯冰塊數。", `${numerator}/${d1} ÷ ${divisorNumerator}/${d1} × 2 = ${integer * 2}。`)
+      () => result(operationKey, "input", `${v.person}有 ${numerator}/${d1} 公升果汁，每杯裝 ${divisorNumerator}/${d1} 公升，可以裝滿幾杯？`, integer, "總量除以每杯容量。", `${numerator}/${d1} ÷ ${divisorNumerator}/${d1} = ${integer}。`)
     );
   }
   if (topic === "異分母分數除法") {
@@ -490,8 +504,7 @@ function fractionGenerator(topic, operationKey, difficulty, variant, v) {
       () => result(operationKey, "input", `${numerator}/${d1} ÷ ${divisorNumerator}/${d2} = ？（兩分母不同）`, answer, "除以分數要乘以倒數。", `${numerator}/${d1} × ${d2}/${divisorNumerator} = ${answer}。`),
       () => result(operationKey, "input", `□ ÷ ${divisorNumerator}/${d2} = ${answer}，原分數的分母是 ${d1}，分子是多少？`, numerator, "商乘除數還原被除數。", `${answer} × ${divisorNumerator}/${d2} = ${frac(numerator, d1)}。`),
       () => {
-        const doubled = frac(numerator * d2 * 2, d1 * divisorNumerator);
-        return result(operationKey, "input", `${v.person}有 ${frac(numerator, d1)} 公斤麵粉，每份用 ${frac(divisorNumerator, d2)} 公斤。先算可分成幾份，再把份數乘 2，結果是多少？`, doubled, "先做異分母分數除法，再乘 2。", `${answer} × 2 = ${doubled}。`);
+        return result(operationKey, "input", `${v.person}有 ${frac(numerator, d1)} 公斤麵粉，每份用 ${frac(divisorNumerator, d2)} 公斤，可以分成幾份？`, answer, "總重量除以每份重量。", `${frac(numerator, d1)} ÷ ${frac(divisorNumerator, d2)} = ${answer}。`);
       }
     );
   }
@@ -504,7 +517,7 @@ function fractionGenerator(topic, operationKey, difficulty, variant, v) {
       difficulty,
       () => result(operationKey, "input", `${mixedText} ÷ ${divisor} = ？`, answer, "先把帶分數化成假分數。", `帶分數 ${mixedText} 化為假分數 ${wholeNumerator}/${d1}，再除以 ${divisor} 得 ${answer}。`),
       () => result(operationKey, "input", `某帶分數 ÷ ${divisor} = ${answer}，原帶分數的整數部分是多少？`, integer, "先以商乘除數還原假分數。", `${answer} × ${divisor} = ${wholeNumerator}/${d1} = ${mixedText}。`),
-      () => result(operationKey, "input", `${v.person}把 ${mixedText} 公尺緞帶平均分成 ${divisor} 份，每份再剪去 1/${d1 * divisor} 公尺，剩多少公尺？`, frac(wholeNumerator - 1, d1 * divisor), "先做帶分數除法，再減去剪掉的長度。", `${answer} - 1/${d1 * divisor} = ${frac(wholeNumerator - 1, d1 * divisor)}。`)
+      () => result(operationKey, "input", `${v.person}把 ${mixedText} 公尺緞帶平均分成 ${divisor} 份，每份長多少公尺？`, answer, "先把帶分數化成假分數，再除以份數。", `${mixedText} ÷ ${divisor} = ${answer}。`)
     );
   }
   if (topic === "商的意義") {
@@ -521,7 +534,7 @@ function fractionGenerator(topic, operationKey, difficulty, variant, v) {
     difficulty,
     () => result(operationKey, "input", `${total}/${d1} 公斤平均分成 ${v.b} 份，一份（單位量）是多少公斤？`, frac(integer, d1), "總量除以份數就是單位量。", `${total}/${d1} ÷ ${v.b} = ${frac(integer, d1)}。`),
     () => result(operationKey, "input", `每份 ${integer}/${d1} 公斤，共有 ${v.b} 份，總量分子是多少？`, total, "單位量乘份數可還原總量。", `${integer}/${d1} × ${v.b} = ${total}/${d1}。`),
-    () => result(operationKey, "input", `${v.person}買 ${v.b} 份、每份 ${integer}/${d1} 公斤的${v.object}，又多買 1/${d1} 公斤，總重多少公斤？`, frac(total + 1, d1), "先求多份總量，再加額外重量。", `${integer}/${d1} × ${v.b} + 1/${d1} = ${frac(total + 1, d1)}。`)
+    () => result(operationKey, "input", `${v.person}有 ${total}/${d1} 公斤的${v.object}，每份裝 ${integer}/${d1} 公斤，可以裝成幾份？`, v.b, "用總重量除以每份重量，求包含幾個單位量。", `${total}/${d1} ÷ ${integer}/${d1} = ${v.b}。`)
   );
 }
 
@@ -555,7 +568,7 @@ function relationGenerator(topic, operationKey, difficulty, variant, v) {
       difficulty,
       () => result(operationKey, "input", `${expression}，結果是多少？`, direct, `依${topic}規律同時調整兩數。`, `調整前後${topic}，答案是 ${direct}。`),
       () => result(operationKey, "input", `${topic}反推：原結果是 ${direct}，調整後其中一數是 ${v.n + step}；調整量是多少？`, step, "比較調整前後同一個數。", `${v.n + step} - ${v.n} = ${step}。`),
-      () => result(operationKey, "input", `${v.person}先利用${topic}算得 ${direct}，再增加 ${step} 個${v.object}，最後是多少？`, direct + step, "先用不變規律求結果，再做第二步加法。", `${direct} + ${step} = ${direct + step}。`)
+      () => result(operationKey, "input", `${expression}。若要保持${topic}，被調整的兩個數必須分別如何改變？請填調整量。`, step, `辨認${topic}成立時兩數的對應變化。`, `兩數的對應調整量都是 ${step}，才能保持${topic}。`)
     );
   }
   const term = start + step * position;
@@ -600,7 +613,7 @@ function decimalGenerator(topic, operationKey, difficulty, variant, v) {
       difficulty,
       () => result(operationKey, "input", `把 ${dividend} 估成最接近的整十數後除以 10，估商是多少？`, Math.round(dividend / 10), "先四捨五入到整十數。", `${dividend} 約為 ${Math.round(dividend / 10) * 10}，估商 ${Math.round(dividend / 10)}。`),
       () => result(operationKey, "input", `把被除數 ${dividend} 估成 ${Math.round(dividend / 10) * 10} 後計算；原數與估計數相差多少？`, Math.abs(dividend - Math.round(dividend / 10) * 10), "比較原數與最接近的整十數。", `|${dividend} - ${Math.round(dividend / 10) * 10}| = ${Math.abs(dividend - Math.round(dividend / 10) * 10)}。`),
-      () => result(operationKey, "input", `${v.person}帶 ${dividend} 元，每件約 10 元，先估可買 ${Math.round(dividend / 10)} 件，再少買 2 件，買幾件？`, Math.round(dividend / 10) - 2, "先估商，再扣掉 2 件。", `${Math.round(dividend / 10)} - 2 = ${Math.round(dividend / 10) - 2}。`)
+      () => result(operationKey, "input", `${v.person}帶 ${dividend} 元，每件約 10 元。不做精算時，估計最多可買幾件？`, Math.round(dividend / 10), "把總金額估成最接近的整十數，再除以 10。", `${dividend} 約為 ${Math.round(dividend / 10) * 10}，估計可買 ${Math.round(dividend / 10)} 件。`)
     );
   }
   if (topic === "除法關係") {
@@ -612,7 +625,7 @@ function decimalGenerator(topic, operationKey, difficulty, variant, v) {
     difficulty,
     () => result(operationKey, "input", `${total} 公斤平均分成 ${divisorInteger} 份，每份幾公斤？`, quotient, "總量除以份數。", `${total} ÷ ${divisorInteger} = ${quotient}。`),
     () => result(operationKey, "input", `每份 ${quotient} 公斤，共 ${divisorInteger} 份，總量多少公斤？`, total, "每份量乘份數。", `${quotient} × ${divisorInteger} = ${total}。`),
-    () => result(operationKey, "input", `${v.person}把 ${total} 公斤${v.object}平均分 ${divisorInteger} 份，每份再用掉 0.2 公斤，剩多少公斤？`, round(quotient - 0.2), "先求平均每份，再減用掉的量。", `${total} ÷ ${divisorInteger} - 0.2 = ${round(quotient - 0.2)}。`)
+    () => result(operationKey, "input", `${v.person}把 ${total} 公斤餅乾平均分成 ${divisorInteger} 份，每份重多少公斤？`, quotient, "總重量除以份數。", `${total} ÷ ${divisorInteger} = ${quotient}。`)
   );
 }
 
@@ -623,7 +636,7 @@ function decimalDivisionSet(topic, operationKey, difficulty, v, dividend, diviso
     difficulty,
     () => result(operationKey, "input", `${topic}：${dividend} ÷ ${divisor} = ？`, quotient, "同時移動被除數與除數的小數點，直到除數為整數。", `${dividend} ÷ ${divisor} = ${quotient}。`),
     () => result(operationKey, "input", `${topic}反推：□ ÷ ${divisor} = ${quotient}，□ 是多少？`, dividend, "商乘除數可還原被除數。", `${quotient} × ${divisor} = ${dividend}。`),
-    () => result(operationKey, "input", `${v.person}有 ${applicationTotal} 公升果汁，每瓶裝 ${divisor} 公升，裝滿後每瓶貼 2 張標籤，共需幾張？`, bottleCount * 2, "先用總量除以每瓶容量，再乘每瓶標籤數。", `${applicationTotal} ÷ ${divisor} × 2 = ${bottleCount * 2}。`)
+    () => result(operationKey, "input", `${v.person}有 ${applicationTotal} 公升果汁，每瓶裝 ${divisor} 公升，可以裝滿幾瓶？`, bottleCount, "果汁總量除以每瓶容量。", `${applicationTotal} ÷ ${divisor} = ${bottleCount}。`)
   );
 }
 
@@ -636,7 +649,7 @@ function ratioGenerator(topic, operationKey, difficulty, variant, v) {
       difficulty,
       () => result(operationKey, "input", `${first} 個紅球和 ${second} 個藍球記成 ${first}：${second}，前項是多少？`, first, "冒號前是前項。", `比的前項是 ${first}。`),
       () => result(operationKey, "input", `某比的前項是 ${first}、後項是 ${second}，兩項的和是多少？`, first + second, "先依比的記法辨認兩項。", `${first} + ${second} = ${first + second}。`),
-      () => result(operationKey, "input", `${v.person}把 ${first} 個${v.object}與 ${second} 張卡片寫成比，前項再增加 2，新的前項是多少？`, first + 2, "先判斷前項，再增加 2。", `${first} + 2 = ${first + 2}。`)
+      () => result(operationKey, "input", `${v.person}有 ${first} 張貼紙和 ${second} 張卡片，寫成「貼紙數：卡片數」時，前項是多少？`, first, "比號前面的數是前項。", `貼紙數在比號前，所以前項是 ${first}。`)
     );
   }
   if (topic === "比值") {
@@ -654,7 +667,7 @@ function ratioGenerator(topic, operationKey, difficulty, variant, v) {
         difficulty,
         () => result(operationKey, "input", `${round(first / 10)}：${round(second / 10)} 同乘 10 化為整數比後，兩項和是多少？`, first + second, "小數比兩項同乘 10。", `${round(first / 10)}：${round(second / 10)} = ${first}：${second}，和為 ${first + second}。`),
         () => result(operationKey, "input", `小數比化簡後是 ${first}：${second}，兩項原本都除以 10；原小數前項是多少？`, round(first / 10), "把整數比的前項除以 10。", `${first} ÷ 10 = ${round(first / 10)}。`),
-        () => result(operationKey, "input", `${v.person}把小數比 ${round(first / 10)}：${round(second / 10)} 化成整數比，再把兩項各增加 2，新的兩項和是多少？`, first + second + 4, "先同乘 10 化簡，再把兩項增加量加進總和。", `${first} + ${second} + 2 + 2 = ${first + second + 4}。`)
+        () => result(operationKey, "input", `${v.person}把小數比 ${round(first / 10)}：${round(second / 10)} 化成整數比，化簡後兩項的和是多少？`, first + second, "兩項同乘 10 後，再求整數比兩項和。", `${first} + ${second} = ${first + second}。`)
       );
     }
     if (variant === 2) {
@@ -662,7 +675,7 @@ function ratioGenerator(topic, operationKey, difficulty, variant, v) {
         difficulty,
         () => result(operationKey, "input", `${first}/${factor}：${second}/${factor} 同乘 ${factor} 化為整數比後，兩項和是多少？`, first + second, "分數比兩項同乘共同分母。", `化為 ${first}：${second}，和為 ${first + second}。`),
         () => result(operationKey, "input", `分數比化簡後是 ${first}：${second}，共同分母為 ${factor}；原分數前項的分子是多少？`, first, "同乘共同分母後，整數前項就是原分子。", `原分數前項是 ${first}/${factor}。`),
-        () => result(operationKey, "input", `${v.person}把 ${first}/${factor}：${second}/${factor} 化為整數比後，按兩項和準備${v.object}，又多準備 ${factor} 個，共幾個？`, first + second + factor, "先同乘共同分母化簡，再加額外數量。", `${first} + ${second} + ${factor} = ${first + second + factor}。`)
+        () => result(operationKey, "input", `${v.person}把 ${first}/${factor}：${second}/${factor} 化為整數比，化簡後兩項的和是多少？`, first + second, "兩項同乘共同分母，再求和。", `${first} + ${second} = ${first + second}。`)
       );
     }
   }
@@ -697,7 +710,7 @@ function circleGenerator(topic, operationKey, difficulty, variant, v) {
       difficulty,
       () => result(operationKey, "input", `圓周長 ${circumference} 公分 ÷ 直徑 ${diameter} 公分，比值是多少？`, 3.14, "圓周率 = 圓周長 ÷ 直徑。", `${circumference} ÷ ${diameter} = 3.14。`),
       () => result(operationKey, "input", `圓周長 ÷ 直徑 = 3.14，直徑 ${diameter} 公分時，圓周長多少公分？`, circumference, "圓周長 = 圓周率 × 直徑。", `3.14 × ${diameter} = ${circumference}。`),
-      () => result(operationKey, "input", `直徑 ${diameter} 公分的輪子滾 2 圈，再前進 ${radius} 公分，共前進多少公分？`, round(circumference * 2 + radius), "先用圓周率求周長，乘圈數後再加距離。", `${diameter} × 3.14 × 2 + ${radius} = ${round(circumference * 2 + radius)}。`)
+      () => result(operationKey, "input", `直徑 ${diameter} 公分的輪子完整滾動 2 圈，共前進多少公分？`, round(circumference * 2), "一圈前進一個圓周長，先求周長再乘圈數。", `${diameter} × 3.14 × 2 = ${round(circumference * 2)}。`)
     );
   }
   if (topic === "直徑與半徑") {
@@ -713,7 +726,7 @@ function circleGenerator(topic, operationKey, difficulty, variant, v) {
       difficulty,
       () => result(operationKey, "input", `由圓周長反推半徑：圓周長 ${circumference} 公分，半徑多少公分？（π 取 3.14）`, radius, "圓周長除以 3.14 得直徑，再除以 2。", `${circumference} ÷ 3.14 ÷ 2 = ${radius}。`),
       () => result(operationKey, "input", `由圓面積反推半徑：圓面積 ${area} 平方公分，半徑多少公分？（π 取 3.14）`, radius, "面積除以 3.14 後開平方。", `${area} ÷ 3.14 = ${radius * radius}，半徑是 ${radius}。`),
-      () => result(operationKey, "input", `${v.person}量得圓周長 ${circumference} 公分，先反推半徑，再把半徑加 2 公分，結果多少？`, radius + 2, "先由周長反推直徑、半徑，再加 2。", `${circumference} ÷ 3.14 ÷ 2 + 2 = ${radius + 2}。`)
+      () => result(operationKey, "input", `${v.person}量得圓周長 ${circumference} 公分，這個圓的半徑是多少公分？`, radius, "先由周長除以 3.14 求直徑，再除以 2。", `${circumference} ÷ 3.14 ÷ 2 = ${radius}。`)
     );
   }
   if (topic === "扇形弧長" || topic === "扇形周長") {
@@ -744,7 +757,7 @@ function areaGenerator(topic, operationKey, difficulty, variant, v) {
       difficulty,
       () => result(operationKey, "input", `圓面積 ${area} 平方公分，半徑是多少公分？（π 取 3.14）`, radius, "面積除以 3.14 後開平方。", `${area} ÷ 3.14 = ${radius * radius}，半徑是 ${radius}。`),
       () => result(operationKey, "input", `半徑平方是 ${radius * radius}，正的半徑是多少公分？`, radius, "半徑取正值。", `${radius} × ${radius} = ${radius * radius}。`),
-      () => result(operationKey, "input", `${v.person}量得圓面積 ${area} 平方公分，先反推半徑，再把半徑增加 2 公分，新半徑多少？`, radius + 2, "先由面積反推半徑，再加 2。", `${area} ÷ 3.14 = ${radius * radius}，${radius} + 2 = ${radius + 2}。`)
+      () => result(operationKey, "input", `${v.person}量得圓面積 ${area} 平方公分，這個圓的半徑是多少公分？`, radius, "面積除以 3.14 得到半徑平方，再找平方根。", `${area} ÷ 3.14 = ${radius * radius}，所以半徑是 ${radius}。`)
     );
   }
   if (topic === "半徑平方") {
@@ -762,7 +775,7 @@ function areaGenerator(topic, operationKey, difficulty, variant, v) {
       difficulty,
       () => result(operationKey, "input", `半徑 ${radius} 公分的 1/${parts} 圓面積是多少？（π 取 3.14）`, part, "先求整圓面積，再除以份數。", `${radius} × ${radius} × 3.14 ÷ ${parts} = ${part}。`),
       () => result(operationKey, "input", `1/${parts} 圓面積 ${part} 平方公分，整圓面積多少？`, round(part * parts), "部分面積乘份數。", `${part} × ${parts} = ${round(part * parts)}。`),
-      () => result(operationKey, "input", `${v.person}鋪半徑 ${radius} 公尺的 1/${parts} 圓，再加鋪 ${radius} 平方公尺，共鋪多少平方公尺？`, round(part + radius), "先求部分圓面積，再加額外面積。", `${part} + ${radius} = ${round(part + radius)}。`)
+      () => result(operationKey, "input", `${v.person}鋪半徑 ${radius} 公尺的 1/${parts} 圓形區域，面積是多少平方公尺？`, part, "先求完整圓面積，再除以所占份數。", `${area} ÷ ${parts} = ${part}。`)
     );
   }
   if (topic === "組合圖形") {
@@ -772,14 +785,14 @@ function areaGenerator(topic, operationKey, difficulty, variant, v) {
       difficulty,
       () => result(operationKey, "input", `半徑 ${radius} 與 ${smallRadius} 公分的兩圓面積相加是多少？（π 取 3.14）`, round(area + smallArea), "分別求兩圓面積再相加。", `${area} + ${smallArea} = ${round(area + smallArea)}。`),
       () => result(operationKey, "input", `大圓面積 ${area}、小圓面積 ${smallArea} 平方公分，環形面積是多少？`, round(area - smallArea), "大圓面積減小圓面積。", `${area} - ${smallArea} = ${round(area - smallArea)}。`),
-      () => result(operationKey, "input", `${v.person}鋪大圓 ${area} 平方公尺，挖去小圓 ${smallArea} 平方公尺後，再加鋪 ${radius} 平方公尺，共多少平方公尺？`, round(area - smallArea + radius), "先相減形成組合圖形，再加額外區域。", `${area} - ${smallArea} + ${radius} = ${round(area - smallArea + radius)}。`)
+      () => result(operationKey, "input", `${v.person}從面積 ${area} 平方公尺的大圓挖去面積 ${smallArea} 平方公尺的小圓，剩下的環形面積是多少平方公尺？`, round(area - smallArea), "環形面積 = 大圓面積 - 小圓面積。", `${area} - ${smallArea} = ${round(area - smallArea)}。`)
     );
   }
   return complexity(
     difficulty,
     () => result(operationKey, "input", `半徑 ${radius} 公分的圓面積是多少？（π 取 3.14）`, area, "圓面積 = 半徑 × 半徑 × 3.14。", `${radius} × ${radius} × 3.14 = ${area}。`),
     () => result(operationKey, "input", `圓面積 ${area} 平方公分，面積除以 3.14 後是多少？`, radius * radius, "先反推半徑平方。", `${area} ÷ 3.14 = ${radius * radius}。`),
-    () => result(operationKey, "input", `${v.person}鋪半徑 ${radius} 公尺的圓形區域，再加鋪 ${radius} 平方公尺，共多少平方公尺？`, round(area + radius), "先求圓面積，再加額外面積。", `${area} + ${radius} = ${round(area + radius)}。`)
+    () => result(operationKey, "input", `${v.person}要鋪半徑 ${radius} 公尺的圓形區域，需要鋪多少平方公尺？`, area, "圓面積 = 半徑 × 半徑 × 3.14。", `${radius} × ${radius} × 3.14 = ${area}。`)
   );
 }
 
