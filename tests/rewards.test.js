@@ -103,16 +103,29 @@ test("同一天重複閱讀同單元不重複增加閱讀任務", () => {
   assert.equal(rewards.stars, starsAfterFirst);
 });
 
-test("XP 可換算等級與稱號", () => {
-  const info = getLevelInfo(210);
-  assert.equal(info.level, 3);
-  assert.equal(info.title, "分數探險家");
+test("等級稱號依新規則正確對應全部邊界", () => {
+  const cases = [
+    [1, "玥玥剛出新手村"],
+    [10, "玥玥剛出新手村"],
+    [11, "數學難不倒我"],
+    [30, "數學難不倒我"],
+    [31, "數學小老師"],
+    [50, "數學小老師"],
+    [51, "數學天才"],
+    [99, "數學天才"],
+    [100, "數學大師玥玥"],
+    [101, "數學大師玥玥"],
+  ];
+  for (const [level, title] of cases) {
+    assert.equal(getLevelInfo((level - 1) * 100).level, level);
+    assert.equal(getLevelInfo((level - 1) * 100).title, title);
+  }
 });
 
 test("每累積 100 XP 升一級，等級進度條以 100 XP 為週期", () => {
   assert.deepEqual(getLevelInfo(0), {
     level: 1,
-    title: "學習新星",
+    title: "玥玥剛出新手村",
     currentLevelXp: 0,
     nextLevelXp: 100,
     progress: 0,
@@ -121,6 +134,16 @@ test("每累積 100 XP 升一級，等級進度條以 100 XP 為週期", () => {
   assert.equal(getLevelInfo(99).level, 1);
   assert.equal(getLevelInfo(100).level, 2);
   assert.equal(getLevelInfo(100).progress, 0);
+});
+
+test("等級稱號不殘留舊稱號字串", () => {
+  const oldTitles = ["學習新星", "分數探險家", "解題高手", "數學小博士"];
+  for (const level of [1, 10, 11, 30, 31, 50, 51, 99, 100, 101]) {
+    const title = getLevelInfo((level - 1) * 100).title;
+    for (const oldTitle of oldTitles) {
+      assert.notEqual(title, oldTitle);
+    }
+  }
 });
 
 test("舊資料的歷史 XP 與星星會原樣保留，不回溯修正", () => {

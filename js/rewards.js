@@ -109,7 +109,15 @@ export function getLevelInfo(xp = 0) {
   const currentLevelXp = (level - 1) * XP_PER_LEVEL;
   const nextLevelXp = level * XP_PER_LEVEL;
   const title =
-    level >= 8 ? "數學小博士" : level >= 5 ? "解題高手" : level >= 3 ? "分數探險家" : "學習新星";
+    level >= 100
+      ? "數學大師玥玥"
+      : level >= 51
+        ? "數學天才"
+        : level >= 31
+          ? "數學小老師"
+          : level >= 11
+            ? "數學難不倒我"
+            : "玥玥剛出新手村";
   return {
     level,
     title,
