@@ -12,6 +12,7 @@ import {
   applyLessonReward,
   evaluateMissions,
   getLevelInfo,
+  hasReadLessonBefore,
   normalizeRewards,
 } from "./rewards.js";
 import { defaultLearningState, normalizeLearningState } from "./state-shape.js";
@@ -210,6 +211,12 @@ export function recordLessonRead(unitId) {
   state.rewards = result.rewards;
   saveState(state);
   return { ...state, lessonMessage: result.message, firstReadToday: result.firstReadToday };
+}
+
+/** 查詢某單元的教學是否曾經完成過（不限今天），供教學頁重新載入時顯示已完成狀態。 */
+export function isLessonCompletedBefore(unitId) {
+  const state = loadState();
+  return hasReadLessonBefore(state.rewards, unitId);
 }
 
 export function getRewardSummary() {

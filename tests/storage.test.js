@@ -15,7 +15,7 @@ function makeMemoryStorage() {
 
 globalThis.localStorage = makeMemoryStorage();
 
-const { recordAnswer, getUnitSummary, getStreak, getWrongBook, resetState } = await import(
+const { recordAnswer, getUnitSummary, getStreak, getWrongBook, resetState, recordLessonRead, isLessonCompletedBefore } = await import(
   "../js/storage.js"
 );
 
@@ -78,3 +78,17 @@ test("recordAnswer 更新連續學習天數", () => {
   assert.equal(streak.count, 1);
   assert.ok(streak.lastDate);
 });
+
+test("isLessonCompletedBefore 尚未讀過回傳 false（模擬重新載入頁面）", () => {
+  resetState();
+  assert.equal(isLessonCompletedBefore("fraction-multiply"), false);
+});
+
+test("isLessonCompletedBefore 讀過教學後回傳 true（模擬重新載入頁面仍顯示已完成）", () => {
+  resetState();
+  recordLessonRead("fraction-multiply");
+  assert.equal(isLessonCompletedBefore("fraction-multiply"), true);
+  // 其他單元不受影響
+  assert.equal(isLessonCompletedBefore("fraction-divide"), false);
+});
+

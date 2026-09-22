@@ -1,0 +1,73 @@
+【變更摘要】教學模式「自我檢查」改為勾選制
+日期：2026-09-22
+專案：linyufu0519/YUE-Learning（林小玥六年級數學學習站）
+
+【使用者需求】
+1. 每個自我檢查項目改成可勾選 checkbox。
+2. 全部勾選前，「我讀完了」按鈕必須 disabled，不可送出；全部勾選後才啟用。
+3. 點擊「我讀完了」後才記錄該單元閱讀完成、更新 XP／每日任務／獎勵。
+4. 重新載入頁面時，若本次尚未完成不得誤顯示已完成；已完成過的閱讀紀錄可正常顯示完成狀態。
+5. 需支援康軒與翰林版本、各單元自我檢查項目。
+6. 維持 localStorage／Firebase 同步相容。
+7. 補測試：部分勾選不可完成、全勾選可完成、空檢查清單的安全處理。
+
+【根因與設計】
+- 舊版 `js/lesson.js` 的自我檢查只是一份純文字清單（`renderList`），「我讀完了」按鈕永遠可點擊，
+  沒有勾選機制，也沒有防呆，任何人一進頁面就能立即觸發 XP／獎勵紀錄。
+- 依需求需要把「是否已理解」的把關（勾選狀態）與「是否已完成過教學」的持久化紀錄分開處理：
+  - 勾選狀態＝本次瀏覽的暫時 UI state，重新整理即重置，不寫入 localStorage，避免「假裝已完成」。
+  - 是否完成過＝沿用既有的 `rewards.lessonReads[unitId]`（陣列非空即代表曾經完成過），
+    在頁面載入時查詢並顯示「已完成過」提示，不影響本次勾選流程。
+
+【修改檔案】
+1. js/logic.js
+   - 新增純函式 `canCompleteSelfCheck(totalItems, checkedCount)`：
+     判斷自我檢查是否全部勾選完成；當該單元沒有自我檢查項目（0 項）時視為安全通過，避免卡住使用者。
+2. js/rewards.js
+   - 新增純函式 `hasReadLessonBefore(rewards, unitId)`：
+     依 `rewards.lessonReads[unitId]` 是否為非空陣列，判斷該單元是否「曾經」完成過教學閱讀（不限今天）。
+3. js/storage.js
+   - 新增 `isLessonCompletedBefore(unitId)`，包一層 `loadState()` + `hasReadLessonBefore()`，
+     供 UI 層在不直接碰觸 rewards 內部結構的情況下查詢「是否已完成過」。
+4. js/lesson.js
+   - 自我檢查改為渲染 checkbox 清單（每項一個 `input[type=checkbox].self-check-box`）。
+   - 「我讀完了」按鈕初始 `disabled` 狀態依 `canCompleteSelfCheck(checks.length, 0)` 決定。
+   - 每個 checkbox 監聽 `change` 事件，重新計算已勾選數並更新按鈕 disabled 狀態。
+   - 按鈕點擊時才呼叫 `recordLessonRead(unit.id)`（沿用既有函式，未變更其邏輯），並保留防呆
+     （`if (completeBtn.disabled) return;`）避免透過非常規方式觸發。
+   - 頁面載入時呼叫 `isLessonCompletedBefore(unit.id)`，若為 true 則在自我檢查區塊上方顯示
+     「✅ 你已經完成過這個單元的自我檢查，複習可以再勾一次！」提示，checkbox 仍固定為未勾選（不持久化）。
+   - 若單元沒有自我檢查項目（理論上康軒／翰林版每個單元都已提供至少 1～2 項，但仍保留防呆文案），
+     顯示替代說明文字，按鈕直接可用。
+5. css/styles.css
+   - 新增 `.lesson-checklist`、`.lesson-check-hint`、`.lesson-completed-badge` 樣式，
+     沿用既有配色變數（`--color-success`、`--color-muted`）。
+6. 測試新增／擴充：
+   - tests/logic.test.js：新增 3 個 `canCompleteSelfCheck` 測試（部分勾選不可完成、全勾選才可完成、
+     空清單安全通過含 undefined/null 輸入）。
+   - tests/rewards.test.js：新增 2 個 `hasReadLessonBefore` 測試（從未讀過為 false、讀過一次後即使
+     換一天查詢仍為 true）。
+   - tests/storage.test.js：新增 2 個 `isLessonCompletedBefore` 測試（模擬「重新載入頁面」情境：
+     尚未讀過回傳 false、讀過教學後回傳 true 且不影響其他單元）。
+7. README.md
+   - 「教學模式」段落補充自我檢查改為勾選制的說明（含空清單安全處理、重新載入行為）。
+   - 測試段落項目數由 64 更新為 79，並補充自我檢查勾選制測試涵蓋範圍。
+
+【相容性確認】
+- 未修改 `js/curriculum.js`、`js/storage.js` 既有的資料結構與合併邏輯，`recordLessonRead`、
+  `applyLessonReward` 呼叫方式與行為完全沿用，localStorage／Firebase 資料結構不變、不需要遷移。
+- 康軒版與翰林版所有單元的 `lessons.js` / `lessons-kangxuan.js` 皆已提供非空 `checks` 陣列
+  （已用 grep 確認），因此空清單防呆目前不會被實際觸發，但保留該防呆以應對未來新增單元忘記填寫。
+
+【測試結果】
+- `node --test tests/` → 79 項全數通過（新增 7 項，原 72 項全數維持通過）。
+- `node --check` 對 `js/*.js` 全部檔案逐一語法檢查 → 全部通過。
+- 本機 HTTP smoke test（index.html、lesson.html?unit=fraction-multiply、lesson.html?unit=kx-unit1、
+  practice.html、parent.html、js/lesson.js、js/logic.js、js/rewards.js、js/storage.js）→ 全部 200。
+- 本機 Edge headless `--dump-dom` 驗證 `lesson.html?unit=fraction-multiply`：
+  - 出現 3 個 `self-check-box` checkbox（對應該單元 3 項自我檢查）。
+  - `#btn-complete-lesson` 初始狀態含 `disabled=""` 屬性，符合「未全勾選前不可送出」需求。
+
+【後續操作】
+- commit 並 push 到 origin main（沿用既有 Basic Auth workaround，非 force push）。
+- 等待 GitHub Pages built 後，於線上網址驗證教學頁 checkbox 與按鈕互動行為。

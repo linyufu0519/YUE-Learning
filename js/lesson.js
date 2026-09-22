@@ -1,6 +1,7 @@
 // js/lesson.js
 import { resolveUnit, getLessonForVersion, isPracticeAvailable, getVersionLabel } from "./curriculum.js";
-import { recordLessonRead } from "./storage.js";
+import { recordLessonRead, isLessonCompletedBefore } from "./storage.js";
+import { canCompleteSelfCheck } from "./logic.js";
 
 const params = new URLSearchParams(window.location.search);
 const unitId = params.get("unit");
@@ -20,6 +21,8 @@ if (!unit || !lesson) {
 
 function renderLesson() {
   const practiceReady = isPracticeAvailable(version, unit.id);
+  const checks = Array.isArray(lesson.checks) ? lesson.checks : [];
+  const completedBefore = isLessonCompletedBefore(unit.id);
   area.innerHTML = `
     <h2>${escapeHtml(lesson.title)}</h2>
     <p>${escapeHtml(lesson.intro)}</p>
@@ -30,9 +33,31 @@ function renderLesson() {
       <h3>例題解析</h3>
       ${lesson.examples.map(renderExample).join("")}
     </div>
-    ${renderList("自我檢查", lesson.checks)}
+    <div class="lesson-section">
+      <h3>自我檢查</h3>
+      ${
+        completedBefore
+          ? `<p class="lesson-completed-badge">✅ 你已經完成過這個單元的自我檢查，複習可以再勾一次！</p>`
+          : ""
+      }
+      ${
+        checks.length
+          ? `<ul class="lesson-checklist">
+              ${checks
+                .map(
+                  (item, i) =>
+                    `<li><label><input type="checkbox" class="self-check-box" data-index="${i}" /> ${escapeHtml(item)}</label></li>`
+                )
+                .join("")}
+            </ul>
+            <p class="lesson-check-hint" id="lesson-check-hint">請全部勾選確認你都讀懂了，才能按下「我讀完了」。</p>`
+          : `<p class="lesson-check-hint">這個單元沒有額外的自我檢查項目，讀完內容就可以按「我讀完了」。</p>`
+      }
+    </div>
     <div class="lesson-actions">
-      <button class="btn secondary" id="btn-complete-lesson">我讀完了</button>
+      <button class="btn secondary" id="btn-complete-lesson" ${
+        canCompleteSelfCheck(checks.length, 0) ? "" : "disabled"
+      }>我讀完了</button>
       ${
         practiceReady
           ? `<a class="btn" href="practice.html?unit=${unit.id}">前往練習</a>`
@@ -43,11 +68,23 @@ function renderLesson() {
     <div class="lesson-message" id="lesson-message" aria-live="polite"></div>
   `;
 
-  document.getElementById("btn-complete-lesson").addEventListener("click", () => {
+  const completeBtn = document.getElementById("btn-complete-lesson");
+  const checkboxes = Array.from(area.querySelectorAll(".self-check-box"));
+
+  function refreshButtonState() {
+    const checkedCount = checkboxes.filter((box) => box.checked).length;
+    completeBtn.disabled = !canCompleteSelfCheck(checks.length, checkedCount);
+  }
+
+  checkboxes.forEach((box) => box.addEventListener("change", refreshButtonState));
+
+  completeBtn.addEventListener("click", () => {
+    if (completeBtn.disabled) return;
     const result = recordLessonRead(unit.id);
     document.getElementById("lesson-message").textContent = result.lessonMessage;
   });
 }
+
 
 function renderList(title, items) {
   return `

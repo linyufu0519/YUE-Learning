@@ -6,6 +6,7 @@ import {
   defaultRewards,
   evaluateMissions,
   getLevelInfo,
+  hasReadLessonBefore,
 } from "../js/rewards.js";
 
 test("作答會累積 XP 並推進每日練習任務", () => {
@@ -45,3 +46,17 @@ test("XP 可換算等級與稱號", () => {
   assert.equal(info.level, 3);
   assert.equal(info.title, "分數探險家");
 });
+
+test("hasReadLessonBefore：從未讀過回傳 false", () => {
+  const rewards = defaultRewards();
+  assert.equal(hasReadLessonBefore(rewards, "fraction-multiply"), false);
+});
+
+test("hasReadLessonBefore：讀過一次之後即使是不同天也回傳 true", () => {
+  const rewards = defaultRewards();
+  applyLessonReward(rewards, "fraction-multiply", "2026-09-20");
+  assert.equal(hasReadLessonBefore(rewards, "fraction-multiply"), true);
+  // 換一天查詢，仍然視為「已完成過」，不是只看今天
+  assert.equal(hasReadLessonBefore(rewards, "fraction-multiply"), true);
+});
+

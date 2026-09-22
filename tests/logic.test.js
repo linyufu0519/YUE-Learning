@@ -9,6 +9,7 @@ import {
   updateStreak,
   computeUnitProgress,
   mergeWrongBook,
+  canCompleteSelfCheck,
 } from "../js/logic.js";
 
 test("parseFraction 解析一般分數", () => {
@@ -85,3 +86,20 @@ test("mergeWrongBook 新增與更新錯題", () => {
   });
   assert.equal(book.length, 0);
 });
+
+test("canCompleteSelfCheck 部分勾選不可完成", () => {
+  assert.equal(canCompleteSelfCheck(3, 0), false);
+  assert.equal(canCompleteSelfCheck(3, 2), false);
+});
+
+test("canCompleteSelfCheck 全部勾選才可完成", () => {
+  assert.equal(canCompleteSelfCheck(3, 3), true);
+  assert.equal(canCompleteSelfCheck(1, 1), true);
+});
+
+test("canCompleteSelfCheck 空自我檢查清單視為安全通過", () => {
+  assert.equal(canCompleteSelfCheck(0, 0), true);
+  assert.equal(canCompleteSelfCheck(undefined, 0), true);
+  assert.equal(canCompleteSelfCheck(null, 0), true);
+});
+

@@ -557,6 +557,29 @@ a {
   font-weight: 800;
 }
 
+.lesson-checklist {
+  list-style: none;
+  padding: 0;
+  line-height: 2;
+}
+
+.lesson-checklist input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+.lesson-check-hint {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.lesson-completed-badge {
+  color: var(--color-success);
+  font-weight: 700;
+}
+
 .hint-btn {
   background: none;
   border: none;

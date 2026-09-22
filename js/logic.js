@@ -153,6 +153,19 @@ export function mergeWrongBook(wrongBook, entry) {
   return list;
 }
 
+/**
+ * 判斷教學頁「自我檢查」清單是否全部勾選完成，可讓「我讀完了」按鈕啟用。
+ * 若該單元沒有自我檢查項目（totalItems 為 0 或未定義），視為安全通過，避免卡住使用者。
+ * @param {number} totalItems 自我檢查項目總數
+ * @param {number} checkedCount 目前已勾選的項目數
+ */
+export function canCompleteSelfCheck(totalItems, checkedCount) {
+  const total = Number.isFinite(totalItems) ? totalItems : 0;
+  if (total <= 0) return true;
+  const checked = Number.isFinite(checkedCount) ? checkedCount : 0;
+  return checked >= total;
+}
+
 /** 依 YYYY-MM-DD 格式取得今天日期字串（可注入日期以便測試） */
 export function todayString(date = new Date()) {
   const y = date.getFullYear();

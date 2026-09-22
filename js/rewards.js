@@ -149,6 +149,12 @@ export function applyAnswerReward(rewards, { unitId, questionId, isCorrect, fixe
   };
 }
 
+/** 判斷某單元的教學閱讀是否曾經完成過（不限今天），用於重新載入頁面時顯示「已完成」狀態。 */
+export function hasReadLessonBefore(rewards, unitId) {
+  const reads = rewards?.lessonReads?.[unitId];
+  return Array.isArray(reads) && reads.length > 0;
+}
+
 export function applyLessonReward(rewards, unitId, date = todayString()) {
   rewards.daily = normalizeDaily(rewards.daily, date);
   const reads = rewards.lessonReads[unitId] || [];
