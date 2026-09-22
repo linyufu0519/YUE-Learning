@@ -59,8 +59,13 @@ test("首頁：帳號區塊提供「管理帳號與同步」展開入口與收�
   assert.match(indexHtml, /id="btn-collapse-account"/);
 });
 
-test("首頁、練習頁與家長頁都明確說明 XP／星星僅由每日任務取得", () => {
-  assert.match(indexHtml, /XP 與星星只會在完成每日任務時獲得/);
-  assert.match(practiceHtml, /XP 與星星只在完成每日任務時獲得/);
-  assert.match(parentHtml, /XP 與星星僅由每日任務取得/);
+test("首頁提供學生可到達的錯題複習入口", () => {
+  assert.match(indexHtml, /id="wrong-review-entry"/);
+  assert.match(indexHtml, /href="practice\.html\?review=wrong"/);
+});
+
+test("首頁、練習頁與家長頁的可見 HTML 不顯示星星文字或圖示", () => {
+  for (const html of [indexHtml, practiceHtml, parentHtml]) {
+    assert.doesNotMatch(html, /星星|🌟|⭐/);
+  }
 });

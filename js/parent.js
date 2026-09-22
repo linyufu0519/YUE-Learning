@@ -58,7 +58,6 @@ function render() {
   document.getElementById("p-total-attempts").textContent = totalAttempts;
   document.getElementById("p-wrong-count").textContent = wrongBook.length;
   document.getElementById("p-xp").textContent = rewards.xp;
-  document.getElementById("p-stars").textContent = rewards.stars;
   document.getElementById("p-title").textContent = rewards.levelInfo.title;
   document.getElementById("p-level").textContent = rewards.levelInfo.level;
   document.getElementById("p-mission-list").innerHTML = rewards.missions
@@ -74,8 +73,9 @@ function render() {
       `
     )
     .join("");
-  document.getElementById("p-badge-list").innerHTML = rewards.badges.length
-    ? rewards.badges.map((badge) => `<span class="mini-badge">🏅 ${escapeHtml(badge)}</span>`).join("")
+  const visibleBadges = rewards.badges.filter((badge) => !String(badge).includes("星"));
+  document.getElementById("p-badge-list").innerHTML = visibleBadges.length
+    ? visibleBadges.map((badge) => `<span class="mini-badge">🏅 ${escapeHtml(badge)}</span>`).join("")
     : `<span class="empty-hint">尚未取得徽章。</span>`;
 
   renderLevelRewards(rewards.levelRewards);

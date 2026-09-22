@@ -330,6 +330,38 @@ a {
   font-size: 0.86rem;
 }
 
+.wrong-review-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.wrong-review-entry .unit-meta {
+  margin: 0;
+}
+
+.wrong-review-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.wrong-review-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 2px solid #eee0cf;
+  border-radius: 12px;
+  background: #fffdf9;
+}
+
+.wrong-review-item .btn {
+  flex: 0 0 auto;
+}
+
 /* ---------- 每日任務與獎勵 ---------- */
 .reward-layout {
   display: grid;
@@ -479,6 +511,12 @@ a {
 }
 
 @media (max-width: 600px) {
+  .wrong-review-entry,
+  .wrong-review-item {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .modal-overlay {
     align-items: flex-end;
     padding: 0;
@@ -538,6 +576,10 @@ a {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.difficulty-panel[hidden] {
+  display: none;
 }
 
 .difficulty-panel label {

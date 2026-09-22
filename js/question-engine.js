@@ -9,6 +9,7 @@ export const DIFFICULTY_LABELS = {
   easy: "基礎",
   medium: "進階",
   hard: "挑戰",
+  review: "錯題複習",
 };
 
 function frac(num, den = 1) {

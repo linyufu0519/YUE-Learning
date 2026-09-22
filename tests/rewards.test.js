@@ -227,6 +227,16 @@ test("每日任務獎勵固定為 50／25／25 XP，且每項都是 1 顆星星"
   );
 });
 
+test("每日任務仍累加星星，但使用者訊息與任務說明不顯示星星", () => {
+  const rewards = defaultRewards();
+  const result = applyPracticeSessionReward(rewards, { allCorrect: true }, rewards.daily.date);
+  assert.equal(rewards.stars, 1);
+  assert.doesNotMatch(result.message, /星星|🌟|⭐/);
+  for (const mission of DAILY_MISSIONS) {
+    assert.doesNotMatch(mission.description, /星星|🌟|⭐/);
+  }
+});
+
 test("同一天完成全部三項每日任務共得 100 XP，剛好升一級", () => {
   const rewards = defaultRewards();
   const date = rewards.daily.date;

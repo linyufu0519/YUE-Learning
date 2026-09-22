@@ -6,21 +6,21 @@ export const DAILY_MISSIONS = [
   {
     id: "practice-5",
     title: "完成 10 題練習",
-    description: "今天完成任一單元 10 題練習，可獲得 50 XP＋1 顆星星。",
+    description: "今天完成任一單元 10 題練習，可獲得 50 XP。",
     target: 10,
     xp: 50,
   },
   {
     id: "read-lesson",
     title: "閱讀 1 個教學",
-    description: "完成教學閱讀與全部自我檢查，可獲得 25 XP＋1 顆星星。",
+    description: "完成教學閱讀與全部自我檢查，可獲得 25 XP。",
     target: 1,
     xp: 25,
   },
   {
     id: "fix-wrong",
     title: "全部答對或修正錯題",
-    description: "今天有一次練習全對，或把錯題重新答對，可獲得 25 XP＋1 顆星星。",
+    description: "今天有一次練習全對，或把錯題重新答對，可獲得 25 XP。",
     target: 1,
     xp: 25,
   },
@@ -337,5 +337,5 @@ function buildSessionMissionMessage(missions) {
 
 function buildMissionRewardMessage(missions) {
   const xp = missions.reduce((sum, mission) => sum + mission.xp, 0);
-  return `任務完成：${missions.map((m) => m.title).join("、")}！獲得 ${xp} XP 與 ${missions.length} 顆星星 🎉`;
+  return `任務完成：${missions.map((m) => m.title).join("、")}！獲得 ${xp} XP 🎉`;
 }

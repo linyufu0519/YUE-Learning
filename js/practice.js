@@ -2,8 +2,10 @@
 import { resolveUnit, getPracticeBankKey, getAvailableQuestionCount, getVersionLabel } from "./curriculum.js";
 import { gradeAnswer } from "./logic.js";
 import {
+  getCurrentVersion,
   getRecentQuestionIds,
   getUnitSummary,
+  getWrongBook,
   recordAnswer,
   recordPracticeSessionResult,
 } from "./storage.js";
@@ -12,10 +14,14 @@ import {
   PRACTICE_QUESTION_COUNT,
   selectPracticeQuestions,
 } from "./question-engine.js";
+import { createWrongReviewQuestions, getWrongReviewKey } from "./wrong-review.js";
 
 const params = new URLSearchParams(window.location.search);
 const unitId = params.get("unit");
-const { version, unit } = resolveUnit(unitId);
+const reviewMode = params.get("review") === "wrong";
+const resolved = resolveUnit(unitId);
+const version = reviewMode ? getCurrentVersion() : resolved.version;
+const unit = resolved.unit;
 // 康軒版第2單元（分數除法）沿用翰林版「fraction-divide」題庫，抽題時要用題庫 key，
 // 但學習紀錄（recordAnswer/getUnitSummary/getRecentQuestionIds）仍以畫面上的 unitId 為準，
 // 讓兩個版本的進度分開累計，不互相污染。
@@ -28,12 +34,15 @@ const summaryArea = document.getElementById("summary-area");
 const progressLabel = document.getElementById("progress-label");
 const progressBar = document.getElementById("practice-progress-bar");
 const liveAccuracy = document.getElementById("live-accuracy");
+const difficultyPanel = document.getElementById("difficulty-panel");
 
 let currentIndex = 0;
 let sessionCorrect = 0;
 let answeredCurrent = false;
 
-if (!unit || !bankKey) {
+if (reviewMode) {
+  setupWrongReview();
+} else if (!unit || !bankKey) {
   questionArea.innerHTML = `
     <p>⚠️ 這個單元目前尚未開放練習，請先閱讀教學內容。</p>
     <a class="btn" href="index.html">回首頁</a>
@@ -50,6 +59,78 @@ if (!unit || !bankKey) {
   });
   document.getElementById("btn-restart-practice").addEventListener("click", startPractice);
   startPractice();
+}
+
+function setupWrongReview() {
+  document.getElementById("unit-title").textContent = "📝 錯題複習";
+  document.title = "錯題複習 | 林小玥六年級數學學習站";
+  const subtitleEl = document.querySelector(".subtitle");
+  if (subtitleEl) subtitleEl.textContent = `${getVersionLabel(version)}．重新答對，真正學會`;
+  difficultyPanel.hidden = true;
+  renderWrongReviewList();
+}
+
+function renderWrongReviewList() {
+  const wrongBook = getWrongBook(version);
+  progressLabel.textContent = wrongBook.length ? `目前有 ${wrongBook.length} 題待複習` : "錯題本目前是空的";
+  progressBar.style.width = "0%";
+  liveAccuracy.textContent = "—";
+  summaryArea.style.display = "none";
+  questionArea.style.display = "block";
+
+  if (wrongBook.length === 0) {
+    questionArea.innerHTML = `
+      <div class="empty-hint">🎉 ${escapeHtml(getVersionLabel(version))}目前沒有錯題，繼續保持！</div>
+      <div class="practice-footer">
+        <a class="btn secondary" href="index.html">回首頁挑戰新題目</a>
+      </div>
+    `;
+    return;
+  }
+
+  questionArea.innerHTML = `
+    <h2 style="margin-top:0;">選擇要複習的錯題</h2>
+    <p class="unit-meta">可以先重答一題，也可以一次複習目前全部錯題。答對後會自動移出錯題本。</p>
+    <button type="button" class="btn" id="btn-review-all">複習全部 ${wrongBook.length} 題</button>
+    <div class="wrong-review-list">
+      ${wrongBook
+        .slice()
+        .reverse()
+        .map((entry) => {
+          const entryUnit = resolveUnit(entry.unitId).unit;
+          return `
+            <div class="wrong-review-item">
+              <div>
+                <strong>${entryUnit ? `${escapeHtml(entryUnit.icon)} ${escapeHtml(entryUnit.title)}` : "先前練習"}</strong>
+                <div class="unit-meta">${escapeHtml(entry.prompt)}</div>
+              </div>
+              <button type="button" class="btn secondary" data-review-key="${escapeAttr(
+                getWrongReviewKey(entry)
+              )}">重答這一題</button>
+            </div>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
+
+  document.getElementById("btn-review-all").addEventListener("click", () => startWrongReview());
+  questionArea.querySelectorAll("[data-review-key]").forEach((button) => {
+    button.addEventListener("click", () => startWrongReview(button.dataset.reviewKey));
+  });
+}
+
+function startWrongReview(selectedKey = null) {
+  questions = createWrongReviewQuestions(getWrongBook(version), selectedKey);
+  if (questions.length === 0) {
+    renderWrongReviewList();
+    return;
+  }
+  currentIndex = 0;
+  sessionCorrect = 0;
+  questionArea.style.display = "block";
+  summaryArea.style.display = "none";
+  renderQuestion();
 }
 
 function startPractice() {
@@ -72,7 +153,8 @@ function startPractice() {
 function renderQuestion() {
   answeredCurrent = false;
   const q = questions[currentIndex];
-  progressLabel.textContent = `第 ${currentIndex + 1} / ${questions.length} 題（${DIFFICULTY_LABELS[q.selectedDifficulty || q.difficulty]}）`;
+  const difficultyLabel = DIFFICULTY_LABELS[q.selectedDifficulty || q.difficulty] || "練習";
+  progressLabel.textContent = `第 ${currentIndex + 1} / ${questions.length} 題（${difficultyLabel}）`;
   progressBar.style.width = `${(currentIndex / questions.length) * 100}%`;
   updateLiveAccuracy();
 
@@ -147,7 +229,7 @@ function handleAnswer(userAnswer, element) {
   if (isCorrect) sessionCorrect += 1;
 
   const state = recordAnswer({
-    unitId: unit.id,
+    unitId: q.unitId || unit.id,
     questionId: q.id,
     prompt: q.prompt,
     isCorrect,
@@ -205,8 +287,23 @@ function showSummary() {
   const accuracy = Math.round((sessionCorrect / questions.length) * 100);
   const allCorrect = questions.length > 0 && sessionCorrect === questions.length;
   const sessionResult = recordPracticeSessionResult(allCorrect);
-  const summary = getUnitSummary(unit.id, getAvailableQuestionCount(version, unit.id), version);
   const emoji = accuracy >= 80 ? "🏆" : accuracy >= 50 ? "👍" : "💪";
+  const summaryStat = reviewMode
+    ? `<div class="stat-box">
+        <div class="stat-value">${getWrongBook(version).length}</div>
+        <div class="stat-label">剩餘錯題</div>
+      </div>`
+    : `<div class="stat-box">
+        <div class="stat-value">${getUnitSummary(unit.id, getAvailableQuestionCount(version, unit.id), version).progress}%</div>
+        <div class="stat-label">單元累計完成度</div>
+      </div>`;
+  const actions = reviewMode
+    ? `<a class="btn secondary" href="practice.html?review=wrong">繼續複習錯題</a>
+       <a class="btn outline" href="index.html">回首頁</a>`
+    : `<button class="btn secondary" id="retry-btn">再練習一次</button>
+       <a class="btn secondary" href="lesson.html?unit=${unit.id}">回教學複習</a>
+       <a class="btn outline" href="index.html">回首頁</a>
+       <a class="btn" href="parent.html">查看家長進度檢視</a>`;
 
   summaryArea.innerHTML = `
     <div class="big-emoji">${emoji}</div>
@@ -220,23 +317,17 @@ function showSummary() {
         <div class="stat-value">${accuracy}%</div>
         <div class="stat-label">本次正確率</div>
       </div>
-      <div class="stat-box">
-        <div class="stat-value">${summary.progress}%</div>
-        <div class="stat-label">單元累計完成度</div>
-      </div>
+      ${summaryStat}
     </div>
     ${sessionResult.sessionMessage ? `<div class="lesson-message">${escapeHtml(sessionResult.sessionMessage)}</div>` : ""}
     <div class="practice-footer" style="justify-content:center;">
-      <button class="btn secondary" id="retry-btn">再練習一次</button>
-      <a class="btn secondary" href="lesson.html?unit=${unit.id}">回教學複習</a>
-      <a class="btn outline" href="index.html">回首頁</a>
-      <a class="btn" href="parent.html">查看家長進度檢視</a>
+      ${actions}
     </div>
   `;
 
-  document.getElementById("retry-btn").addEventListener("click", () => {
-    startPractice();
-  });
+  if (!reviewMode) {
+    document.getElementById("retry-btn").addEventListener("click", startPractice);
+  }
 }
 
 function escapeHtml(str) {
@@ -247,5 +338,5 @@ function escapeHtml(str) {
 }
 
 function escapeAttr(str) {
-  return String(str).replace(/"/g, "&quot;");
+  return escapeHtml(str).replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }

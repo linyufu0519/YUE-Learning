@@ -63,6 +63,45 @@ test("recordAnswer 答錯會加入錯題本", () => {
   assert.equal(wrongBook[0].questionId, "fd-01");
 });
 
+test("錯題重新答對會從正確版本錯題本移除並完成修正錯題任務", () => {
+  resetState();
+  const payload = {
+    unitId: "kx-unit1",
+    questionId: "kx1-prime-easy-1",
+    prompt: "17 是質數還是合數？",
+    yourAnswer: "合數",
+    correctAnswer: "質數",
+    explanation: "17 只有 1 和 17 兩個因數。",
+    version: "kangxuan",
+  };
+  recordAnswer({ ...payload, isCorrect: false });
+  assert.equal(getWrongBook("kangxuan").length, 1);
+  assert.equal(getWrongBook("hanlin").length, 0);
+
+  recordAnswer({ ...payload, isCorrect: true, yourAnswer: "質數" });
+  assert.equal(getWrongBook("kangxuan").length, 0);
+  assert.equal(getRewardSummary().daily.wrongFixedCount, 1);
+  assert.equal(getRewardSummary().missions.find((m) => m.id === "fix-wrong").done, true);
+});
+
+test("錯題複習再次答錯會更新最新錯誤並保留在原版本錯題本", () => {
+  resetState();
+  const base = {
+    unitId: "fraction-divide",
+    questionId: "fd-review-1",
+    prompt: "1/2 ÷ 1/3 = ?",
+    correctAnswer: "3/2",
+    explanation: "除以分數等於乘以倒數。",
+    version: "hanlin",
+  };
+  recordAnswer({ ...base, isCorrect: false, yourAnswer: "1/6" });
+  recordAnswer({ ...base, isCorrect: false, yourAnswer: "2/3" });
+  const wrongBook = getWrongBook("hanlin");
+  assert.equal(wrongBook.length, 1);
+  assert.equal(wrongBook[0].yourAnswer, "2/3");
+  assert.equal(getWrongBook("kangxuan").length, 0);
+});
+
 test("recordAnswer 更新連續學習天數", () => {
   resetState();
   recordAnswer({

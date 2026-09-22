@@ -1,6 +1,6 @@
 // js/home.js
 import { getUnitsForVersion, getAvailableQuestionCount, getVersionLabel, isPracticeAvailable } from "./curriculum.js";
-import { getRewardSummary, getUnitSummary, getStreak, getCurrentVersion } from "./storage.js";
+import { getRewardSummary, getUnitSummary, getStreak, getCurrentVersion, getWrongBook } from "./storage.js";
 import { describeSyncStatus } from "./sync-logic.js";
 import { renderVersionSwitcher } from "./version-ui.js";
 import { maskEmail, computeAccountPanelState, nextAccountPanelFlags, getNextMilestoneGap } from "./ui-logic.js";
@@ -87,6 +87,19 @@ function renderOverallProgress() {
   document.getElementById("overall-progress-bar").style.width = `${progress}%`;
 }
 
+function renderWrongReviewEntry() {
+  const count = getWrongBook(version).length;
+  const summary = document.getElementById("wrong-review-summary");
+  const button = document.getElementById("wrong-review-btn");
+  if (count === 0) {
+    summary.textContent = `目前${getVersionLabel(version)}沒有待複習的錯題，繼續保持！`;
+    button.textContent = "查看錯題複習";
+  } else {
+    summary.textContent = `目前${getVersionLabel(version)}有 ${count} 題待複習，重新答對就會移出錯題本。`;
+    button.textContent = `開始複習 ${count} 題錯題`;
+  }
+}
+
 function renderUnitGrid() {
   const grid = document.getElementById("unit-grid");
   grid.innerHTML = "";
@@ -138,12 +151,12 @@ function renderRewards() {
   document.getElementById("reward-title").textContent = rewards.levelInfo.title;
   document.getElementById("reward-level").textContent = rewards.levelInfo.level;
   document.getElementById("reward-xp").textContent = rewards.xp;
-  document.getElementById("reward-stars").textContent = rewards.stars;
   document.getElementById("reward-progress-bar").style.width = `${rewards.levelInfo.progress}%`;
 
   const badgeList = document.getElementById("badge-list");
-  badgeList.innerHTML = rewards.badges.length
-    ? rewards.badges.map((badge) => `<span class="mini-badge">🏅 ${badge}</span>`).join("")
+  const visibleBadges = rewards.badges.filter((badge) => !String(badge).includes("星"));
+  badgeList.innerHTML = visibleBadges.length
+    ? visibleBadges.map((badge) => `<span class="mini-badge">🏅 ${badge}</span>`).join("")
     : `<span class="empty-hint">完成每日任務就能收集徽章！</span>`;
 
   document.getElementById("mission-list").innerHTML = rewards.missions
@@ -218,6 +231,7 @@ function setupLevelRewardModal() {
 renderVersionHeader();
 renderTodayTask();
 renderOverallProgress();
+renderWrongReviewEntry();
 renderRewards();
 renderUnitGrid();
 setupLevelRewardModal();
