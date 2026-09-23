@@ -1,0 +1,103 @@
+================================================================================
+  YUE-Learning 跨關卡錯題本重現 bug — 變更摘要
+  日期：2026-09-23
+================================================================================
+
+【USER 需求】
+  家長回報：第一關卡的錯題訂正完成（已從錯題本移除）後，切換到第二關卡作答，
+  若第二關卡也產生新錯題，則第一關卡「已經訂正完成」的錯題會又重新出現在
+  錯題複習清單中，造成家長誤以為訂正紀錄沒有生效。
+
+--------------------------------------------------------------------------------
+
+【影響範圍】
+
+  程式位置一：js/sync-logic.js
+  函式：mergeWrongBooks(localBook, cloudBook, localResolvedAt, cloudResolvedAt)
+  說明：雲端同步時合併本機與雲端的錯題本清單。
+  問題：原邏輯為純聯集（union）合併，只要某筆錯題「曾經」出現在
+        cloudBook 或 localBook 任一邊，就一定會被保留在合併結果中，
+        完全沒有處理「某一邊已經刻意刪除（訂正完成）」的情況。
+
+  修改前：
+    export function mergeWrongBooks(localBook = [], cloudBook = []) {
+      const map = new Map();
+      for (const entry of [...(cloudBook || []), ...(localBook || [])]) {
+        const key = `${entry.unitId}::${entry.questionId}`;
+        const existing = map.get(key);
+        if (!existing || (entry.date || "") >= (existing.date || "")) {
+          map.set(key, entry);
+        }
+      }
+      return Array.from(map.values());
+    }
+
+  修改後：
+    export function mergeWrongBooks(
+      localBook = [],
+      cloudBook = [],
+      localResolvedAt = {},
+      cloudResolvedAt = {}
+    ) {
+      const resolvedAt = mergeResolvedAt(localResolvedAt, cloudResolvedAt);
+      const map = new Map();
+      for (const entry of [...(cloudBook || []), ...(localBook || [])]) {
+        const key = wrongKey(entry);
+        const existing = map.get(key);
+        if (!existing || entryTimestamp(entry) >= entryTimestamp(existing)) {
+          map.set(key, entry);
+        }
+      }
+      for (const [key, entry] of map.entries()) {
+        if (resolvedAt[key] && resolvedAt[key] >= entryTimestamp(entry)) map.delete(key);
+      }
+      return Array.from(map.values());
+    }
+
+  ─────────────────────────────────────────────────────────────────────────────
+
+  程式位置二：js/sync-manager.js、js/cloud-sync.js
+  函式／區塊：ensurePushSubscription / 登入時 fetchCloudState+mergeState+replaceState 流程
+  說明：觸發根因的路徑——practice.html 切換關卡是整頁導覽，每次都會重新執行
+        sync-manager.js，若前一頁的 push 尚未完成就導覽離開，下一頁的
+        pull 會抓到舊版雲端資料，被原 mergeWrongBooks 的聯集邏輯復活。
+  異動：同頁 push 改為 Promise queue 依序執行；雲端寫入改用 Firestore
+        transaction，在 transaction 內讀取最新雲端狀態、合併後再寫回，
+        避免不同頁面或裝置整份互相覆蓋。登入 pull 加入 authGeneration 與
+        UID 檢查，避免舊帳號延遲回應覆寫目前使用者資料。
+
+  ─────────────────────────────────────────────────────────────────────────────
+
+  程式位置三：js/state-shape.js、js/storage.js
+  函式／區塊：emptyProgress / normalizeLearningState / recordAnswer / resetState
+  說明：保存錯題事件時間與訂正刪除事件。
+  異動：wrongBook entry 新增 updatedAt；每個教材版本新增 wrongBookResolvedAt
+        訂正墓碑。答對時寫入墓碑，再次答錯時移除舊墓碑；resetState 保留既有
+        墓碑，並為清除當下仍存在的錯題新增墓碑，避免舊雲端快照復活資料。
+
+--------------------------------------------------------------------------------
+
+【未修改項目】
+  js/logic.js 的 mergeWrongBook()（本機單機合併邏輯）：經模擬驗證邏輯正確，
+  純本機情境（無雲端同步）不會重現此 bug，故未修改。
+
+  js/wrong-review.js 的 createWrongReviewQuestions()：stageId/unitId 保留正確，
+  與此 bug 無關，未修改。
+
+--------------------------------------------------------------------------------
+
+【測試建議】
+  1. 純本機（未登入雲端同步）：stage1 答錯→答對(訂正)→切到 stage2 答錯，
+     確認 stage1 錯題不會重新出現；自動測試已通過。
+  2. 模擬雲端仍保留 stage1 舊錯題、本機已有較新訂正墓碑，再於 stage2
+     新增錯題並執行跨頁 pull/merge，確認只保留 stage2 錯題；自動測試已通過。
+  3. 對照情境：雙端（本機/雲端）都有各自新產生、尚未同步的錯題，合併後
+     兩筆都應保留；自動測試已通過。
+  4. 同一題訂正後再次答錯時，較新的錯誤事件應重新進入錯題本；reset 後拉取
+     舊雲端快照時，已清除錯題不得復活。
+  5. 完整 Node 測試 204/204 通過、56 個 JavaScript 檔案語法檢查通過，
+     GitHub Pages run 35809353246 部署成功。
+  6. 工作環境未提供可安全使用的 Firebase 測試帳密，因此未冒用真實帳號；
+     正式登入帳號的端到端人工複測仍建議依原操作流程再確認一次。
+
+================================================================================
