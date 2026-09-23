@@ -108,6 +108,7 @@ test("錯題重新答對會從正確版本錯題本移除並完成修正錯題�
 
   recordAnswer({ ...payload, isCorrect: true, yourAnswer: "質數" });
   assert.equal(getWrongBook("kangxuan").length, 0);
+  assert.ok(loadState().progress.kangxuan.wrongBookResolvedAt["kx-unit1::kx1-prime-easy-1"]);
   assert.equal(getRewardSummary().daily.wrongFixedCount, 1);
   assert.equal(getRewardSummary().missions.find((m) => m.id === "fix-wrong").done, true);
 });
@@ -128,6 +129,36 @@ test("錯題複習再次答錯會更新最新錯誤並保留在原版本錯題�
   assert.equal(wrongBook.length, 1);
   assert.equal(wrongBook[0].yourAnswer, "2/3");
   assert.equal(getWrongBook("kangxuan").length, 0);
+});
+
+test("純本機：第一關訂正後再新增第二關錯題，不會復活第一關錯題", () => {
+  resetState();
+  const first = {
+    unitId: "kx-unit1",
+    stageId: "kx-unit1-stage-01",
+    questionId: "stage1-wrong",
+    prompt: "第一關測試題",
+    correctAnswer: "2",
+    explanation: "第一關解析",
+    version: "kangxuan",
+  };
+  recordAnswer({ ...first, isCorrect: false, yourAnswer: "3" });
+  recordAnswer({ ...first, isCorrect: true, yourAnswer: "2" });
+  recordAnswer({
+    unitId: "kx-unit1",
+    stageId: "kx-unit1-stage-02",
+    questionId: "stage2-wrong",
+    prompt: "第二關測試題",
+    correctAnswer: "6",
+    explanation: "第二關解析",
+    version: "kangxuan",
+    isCorrect: false,
+    yourAnswer: "5",
+  });
+  assert.deepEqual(
+    getWrongBook("kangxuan").map((entry) => entry.questionId),
+    ["stage2-wrong"]
+  );
 });
 
 test("recordAnswer 更新連續學習天數", () => {

@@ -96,6 +96,16 @@ export async function fetchCloudState(uid) {
   return snap.exists() ? snap.data() : null;
 }
 
-export async function pushCloudState(uid, payload) {
-  await firestoreModule.setDoc(userStateDocRef(uid), payload);
+/**
+ * 在 Firestore transaction 中讀取最新雲端狀態、合併後再寫入。
+ * transaction 發生並行寫入時會自動重試，避免不同頁面或裝置整份互相覆蓋。
+ */
+export async function mergeAndPushCloudState(uid, mergePayload) {
+  if (typeof mergePayload !== "function") throw new TypeError("mergePayload 必須是函式");
+  const ref = userStateDocRef(uid);
+  await firestoreModule.runTransaction(db, async (transaction) => {
+    const snap = await transaction.get(ref);
+    const remote = snap.exists() ? snap.data() : null;
+    transaction.set(ref, mergePayload(remote));
+  });
 }

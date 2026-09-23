@@ -42,15 +42,43 @@ function mergeUnits(localUnits = {}, cloudUnits = {}) {
   return result;
 }
 
-/** 錯題本合併：同一題（unitId+questionId）只留下日期較新的一筆。 */
-export function mergeWrongBooks(localBook = [], cloudBook = []) {
+function wrongKey(entry) {
+  return `${entry.unitId}::${entry.questionId}`;
+}
+
+function entryTimestamp(entry) {
+  return entry.updatedAt || (entry.date ? `${entry.date}T00:00:00.000Z` : "");
+}
+
+function mergeResolvedAt(localResolvedAt = {}, cloudResolvedAt = {}) {
+  const merged = { ...cloudResolvedAt };
+  for (const [key, timestamp] of Object.entries(localResolvedAt || {})) {
+    if (!merged[key] || timestamp >= merged[key]) merged[key] = timestamp;
+  }
+  return merged;
+}
+
+/**
+ * 錯題本合併：同題保留較新的錯誤紀錄；若訂正時間較新，刪除墓碑優先，
+ * 避免尚未更新的雲端快照把已訂正題目復活。
+ */
+export function mergeWrongBooks(
+  localBook = [],
+  cloudBook = [],
+  localResolvedAt = {},
+  cloudResolvedAt = {}
+) {
+  const resolvedAt = mergeResolvedAt(localResolvedAt, cloudResolvedAt);
   const map = new Map();
   for (const entry of [...(cloudBook || []), ...(localBook || [])]) {
-    const key = `${entry.unitId}::${entry.questionId}`;
+    const key = wrongKey(entry);
     const existing = map.get(key);
-    if (!existing || (entry.date || "") >= (existing.date || "")) {
+    if (!existing || entryTimestamp(entry) >= entryTimestamp(existing)) {
       map.set(key, entry);
     }
+  }
+  for (const [key, entry] of map.entries()) {
+    if (resolvedAt[key] && resolvedAt[key] >= entryTimestamp(entry)) map.delete(key);
   }
   return Array.from(map.values());
 }
@@ -147,7 +175,13 @@ function mergeProgress(localProgress, cloudProgress) {
     const b = (cloudProgress && cloudProgress[version]) || { units: {}, wrongBook: [] };
     merged[version] = {
       units: mergeUnits(a.units, b.units),
-      wrongBook: mergeWrongBooks(a.wrongBook, b.wrongBook),
+      wrongBook: mergeWrongBooks(
+        a.wrongBook,
+        b.wrongBook,
+        a.wrongBookResolvedAt,
+        b.wrongBookResolvedAt
+      ),
+      wrongBookResolvedAt: mergeResolvedAt(a.wrongBookResolvedAt, b.wrongBookResolvedAt),
     };
   }
   return merged;

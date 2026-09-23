@@ -9,7 +9,9 @@ import * as cloud from "./cloud-sync.js";
 
 let currentUser = null;
 let lastMergedUid = null;
+let authGeneration = 0;
 let unsubscribeState = null;
+let pushQueue = Promise.resolve();
 let statusListeners = [];
 let currentStatus = { mode: "initializing" };
 
@@ -38,15 +40,21 @@ export function getSyncStatus() {
 
 function ensurePushSubscription() {
   if (unsubscribeState) return;
-  unsubscribeState = onStateChange(async (state) => {
+  unsubscribeState = onStateChange((state) => {
     if (!currentUser) return;
-    try {
-      setStatus({ mode: "syncing", user: { email: currentUser.email } });
-      await cloud.pushCloudState(currentUser.uid, buildCloudPayload(state));
-      setStatus({ mode: "synced", user: { email: currentUser.email }, lastSyncedAt: new Date().toISOString() });
-    } catch (error) {
-      setStatus({ mode: "error", user: { email: currentUser.email }, error: error.message });
-    }
+    const user = currentUser;
+    const payload = buildCloudPayload(state);
+    pushQueue = pushQueue.then(async () => {
+      setStatus({ mode: "syncing", user: { email: user.email } });
+      try {
+        await cloud.mergeAndPushCloudState(user.uid, (remote) =>
+          buildCloudPayload(mergeState(payload, remote, todayString()))
+        );
+        setStatus({ mode: "synced", user: { email: user.email }, lastSyncedAt: new Date().toISOString() });
+      } catch (error) {
+        setStatus({ mode: "error", user: { email: user.email }, error: error.message });
+      }
+    });
   });
 }
 
@@ -61,6 +69,7 @@ export async function initSync() {
     setStatus({ mode: "offline", user: null });
 
     cloud.subscribeAuthState(async (user) => {
+      const generation = ++authGeneration;
       currentUser = user;
       if (!user) {
         lastMergedUid = null;
@@ -79,6 +88,7 @@ export async function initSync() {
       try {
         const local = loadState();
         const remote = await cloud.fetchCloudState(user.uid);
+        if (generation !== authGeneration || currentUser?.uid !== user.uid) return;
         const merged = mergeState(local, remote, todayString());
         replaceState(merged); // 觸發 onStateChange -> 自動推回雲端，確保雙邊一致
         lastMergedUid = user.uid;

@@ -7,7 +7,7 @@ import { normalizeRewards } from "./rewards.js";
 import { defaultSemesterProgress, normalizeSemesterProgress } from "./stage-progress.js";
 
 export function emptyProgress() {
-  return { units: {}, wrongBook: [] };
+  return { units: {}, wrongBook: [], wrongBookResolvedAt: {} };
 }
 
 export function defaultLearningState() {
@@ -47,6 +47,10 @@ export function normalizeLearningState(raw) {
         progress[key] = {
           units: src.units && typeof src.units === "object" ? src.units : {},
           wrongBook: Array.isArray(src.wrongBook) ? src.wrongBook : [],
+          wrongBookResolvedAt:
+            src.wrongBookResolvedAt && typeof src.wrongBookResolvedAt === "object"
+              ? src.wrongBookResolvedAt
+              : {},
         };
       }
     }
@@ -61,6 +65,7 @@ export function normalizeLearningState(raw) {
       progress.hanlin = {
         units: { ...progress.hanlin.units, ...legacyUnits },
         wrongBook: [...progress.hanlin.wrongBook, ...legacyWrongBook],
+        wrongBookResolvedAt: {},
       };
     }
   }

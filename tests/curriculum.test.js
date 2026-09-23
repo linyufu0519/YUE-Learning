@@ -139,8 +139,8 @@ test("resolveUnit：康軒 kx-* 單元不會被誤讀成翰林單元", () => {
 test("defaultLearningState 預設版本為康軒版，並具備兩個版本的進度桶", () => {
   const state = defaultLearningState();
   assert.equal(state.version, "kangxuan");
-  assert.deepEqual(state.progress.kangxuan, { units: {}, wrongBook: [] });
-  assert.deepEqual(state.progress.hanlin, { units: {}, wrongBook: [] });
+  assert.deepEqual(state.progress.kangxuan, { units: {}, wrongBook: [], wrongBookResolvedAt: {} });
+  assert.deepEqual(state.progress.hanlin, { units: {}, wrongBook: [], wrongBookResolvedAt: {} });
 });
 
 test("normalizeLearningState：舊資料（無 version/progress）自動遷移到 hanlin，版本偏好預設康軒版", () => {
@@ -154,7 +154,7 @@ test("normalizeLearningState：舊資料（無 version/progress）自動遷移�
   assert.equal(state.version, "kangxuan");
   assert.equal(state.progress.hanlin.units["fraction-multiply"].attempts, 2);
   assert.equal(state.progress.hanlin.wrongBook.length, 1);
-  assert.deepEqual(state.progress.kangxuan, { units: {}, wrongBook: [] });
+  assert.deepEqual(state.progress.kangxuan, { units: {}, wrongBook: [], wrongBookResolvedAt: {} });
   assert.equal(state.units, undefined);
   assert.equal(state.wrongBook, undefined);
 });
@@ -177,5 +177,5 @@ test("normalizeLearningState：已是新結構的資料保持不變（可重複�
   const state = normalizeLearningState(already);
   assert.equal(state.version, "hanlin");
   assert.equal(state.progress.hanlin.units["fraction-divide"].attempts, 1);
-  assert.deepEqual(state.progress.kangxuan, { units: {}, wrongBook: [] });
+  assert.deepEqual(state.progress.kangxuan, { units: {}, wrongBook: [], wrongBookResolvedAt: {} });
 });

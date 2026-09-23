@@ -59,8 +59,37 @@ test("resetState 也會觸發 onStateChange（清空要能同步到雲端）", (
   assert.equal(received.length, 1);
   assert.deepEqual(received[0].progress.kangxuan.units, {});
   assert.deepEqual(received[0].progress.kangxuan.wrongBook, []);
+  assert.ok(received[0].progress.kangxuan.wrongBookResolvedAt["fraction-divide::sync-q2"]);
   assert.deepEqual(cleared.progress.kangxuan.units, {});
   unsubscribe();
+});
+
+test("resetState 保留既有訂正墓碑，避免舊雲端錯題日後復活", () => {
+  resetState();
+  recordAnswer({
+    unitId: "kx-unit1",
+    questionId: "resolved-before-reset",
+    prompt: "測試",
+    isCorrect: false,
+    yourAnswer: "1",
+    correctAnswer: "2",
+    explanation: "",
+    version: "kangxuan",
+  });
+  recordAnswer({
+    unitId: "kx-unit1",
+    questionId: "resolved-before-reset",
+    prompt: "測試",
+    isCorrect: true,
+    yourAnswer: "2",
+    correctAnswer: "2",
+    explanation: "",
+    version: "kangxuan",
+  });
+  const before = loadState().progress.kangxuan.wrongBookResolvedAt["kx-unit1::resolved-before-reset"];
+  resetState();
+  const after = loadState().progress.kangxuan.wrongBookResolvedAt["kx-unit1::resolved-before-reset"];
+  assert.equal(after, before);
 });
 
 test("unsubscribe 之後不再收到通知", () => {
@@ -97,7 +126,7 @@ test("replaceState 會補齊缺少欄位並正規化 rewards（模擬雲端合�
 
   assert.equal(merged.streak.count, 9);
   assert.deepEqual(merged.progress.hanlin.wrongBook, []);
-  assert.deepEqual(merged.progress.kangxuan, { units: {}, wrongBook: [] });
+  assert.deepEqual(merged.progress.kangxuan, { units: {}, wrongBook: [], wrongBookResolvedAt: {} });
   assert.equal(typeof merged.rewards.xp, "number");
   assert.ok(merged.rewards.daily);
 
@@ -121,6 +150,6 @@ test("舊版（無 version/progress 欄位）資料讀取時會自動遷移到�
   assert.equal(state.version, "kangxuan");
   assert.equal(state.progress.hanlin.units["fraction-divide"].attempts, 5);
   assert.equal(state.progress.hanlin.wrongBook.length, 1);
-  assert.deepEqual(state.progress.kangxuan, { units: {}, wrongBook: [] });
+  assert.deepEqual(state.progress.kangxuan, { units: {}, wrongBook: [], wrongBookResolvedAt: {} });
   assert.equal(state.rewards.xp, 60);
 });

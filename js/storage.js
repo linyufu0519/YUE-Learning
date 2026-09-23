@@ -72,7 +72,19 @@ export function saveState(state) {
 export function resetState() {
   // 使用 saveState 而非直接刪除 key，確保清除紀錄也會觸發狀態變更通知，
   // 讓已登入雲端同步的裝置把「清空後的狀態」一併同步到 Firestore。
+  const current = loadState();
   const state = defaultLearningState();
+  const resetAt = new Date().toISOString();
+  for (const version of ["kangxuan", "hanlin"]) {
+    state.progress[version].wrongBookResolvedAt = {
+      ...current.progress[version].wrongBookResolvedAt,
+    };
+    for (const entry of current.progress[version].wrongBook) {
+      state.progress[version].wrongBookResolvedAt[
+        `${entry.unitId}::${entry.questionId}`
+      ] = resetAt;
+    }
+  }
   saveState(state);
   return state;
 }
@@ -103,7 +115,10 @@ export function setCurrentVersion(version) {
 function getVersionProgress(state, version) {
   const key = isValidVersion(version) ? version : state.version;
   if (!state.progress[key]) {
-    state.progress[key] = { units: {}, wrongBook: [] };
+    state.progress[key] = { units: {}, wrongBook: [], wrongBookResolvedAt: {} };
+  }
+  if (!state.progress[key].wrongBookResolvedAt) {
+    state.progress[key].wrongBookResolvedAt = {};
   }
   return { key, progress: state.progress[key] };
 }
@@ -128,6 +143,7 @@ function getUnitState(progress, unitId) {
 export function recordAnswer(payload) {
   const state = loadState();
   const today = todayString();
+  const answeredAt = new Date().toISOString();
   const { progress } = getVersionProgress(state, payload.version);
   const unit = getUnitState(progress, payload.unitId);
   const wasWrong = progress.wrongBook.some(
@@ -157,7 +173,14 @@ export function recordAnswer(payload) {
     stageId: payload.stageId,
     isCorrect: payload.isCorrect,
     date: today,
+    updatedAt: answeredAt,
   });
+  const wrongKey = `${payload.unitId}::${payload.questionId}`;
+  if (payload.isCorrect) {
+    progress.wrongBookResolvedAt[wrongKey] = answeredAt;
+  } else {
+    delete progress.wrongBookResolvedAt[wrongKey];
+  }
 
   state.streak.count = updateStreak(
     state.streak.lastDate,

@@ -64,6 +64,89 @@ test("mergeWrongBooks 同一題只保留日期較新的一筆", () => {
   assert.equal(q1.yourAnswer, "1/3");
 });
 
+test("mergeWrongBooks：本機已訂正時，舊雲端錯題不會復活", () => {
+  const key = "kx-unit1::stage1-q1";
+  const cloud = [{
+    unitId: "kx-unit1",
+    questionId: "stage1-q1",
+    date: "2026-09-23",
+    updatedAt: "2026-09-23T01:00:00.000Z",
+  }];
+  const merged = mergeWrongBooks(
+    [],
+    cloud,
+    { [key]: "2026-09-23T01:01:00.000Z" },
+    {}
+  );
+  assert.deepEqual(merged, []);
+});
+
+test("mergeState：訂正後立即跨頁拉到舊雲端資料，已訂正錯題不會復活", () => {
+  const key = "kx-unit1::stage1-q1";
+  const local = {
+    version: "kangxuan",
+    progress: {
+      kangxuan: {
+        units: {},
+        wrongBook: [{
+          unitId: "kx-unit2",
+          questionId: "stage2-q1",
+          updatedAt: "2026-09-23T01:02:00.000Z",
+        }],
+        wrongBookResolvedAt: { [key]: "2026-09-23T01:01:00.000Z" },
+      },
+      hanlin: progressWith(),
+    },
+  };
+  const staleCloud = {
+    version: "kangxuan",
+    progress: {
+      kangxuan: {
+        units: {},
+        wrongBook: [{
+          unitId: "kx-unit1",
+          questionId: "stage1-q1",
+          updatedAt: "2026-09-23T01:00:00.000Z",
+        }],
+      },
+      hanlin: progressWith(),
+    },
+  };
+  const merged = mergeState(local, staleCloud, "2026-09-23");
+  assert.deepEqual(merged.progress.kangxuan.wrongBook.map((entry) => entry.questionId), ["stage2-q1"]);
+  assert.equal(merged.progress.kangxuan.wrongBookResolvedAt[key], "2026-09-23T01:01:00.000Z");
+});
+
+test("mergeState：雙端各自新增不同錯題時仍保留兩筆", () => {
+  const local = {
+    version: "kangxuan",
+    progress: {
+      kangxuan: progressWith({}, [{
+        unitId: "kx-unit1",
+        questionId: "local-q",
+        updatedAt: "2026-09-23T01:01:00.000Z",
+      }]),
+      hanlin: progressWith(),
+    },
+  };
+  const cloud = {
+    version: "kangxuan",
+    progress: {
+      kangxuan: progressWith({}, [{
+        unitId: "kx-unit2",
+        questionId: "cloud-q",
+        updatedAt: "2026-09-23T01:02:00.000Z",
+      }]),
+      hanlin: progressWith(),
+    },
+  };
+  const merged = mergeState(local, cloud, "2026-09-23");
+  assert.deepEqual(
+    merged.progress.kangxuan.wrongBook.map((entry) => entry.questionId).sort(),
+    ["cloud-q", "local-q"]
+  );
+});
+
 test("mergeState：雲端無資料（首次登入）時直接沿用本機資料（含版本偏好）", () => {
   const local = {
     version: "hanlin",
