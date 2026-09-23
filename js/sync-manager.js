@@ -38,6 +38,10 @@ export function getSyncStatus() {
   return currentStatus;
 }
 
+export function isCurrentAuthRequest(requestGeneration, requestUid, activeGeneration, activeUid) {
+  return requestGeneration === activeGeneration && requestUid === activeUid;
+}
+
 function ensurePushSubscription() {
   if (unsubscribeState) return;
   unsubscribeState = onStateChange((state) => {
@@ -45,14 +49,20 @@ function ensurePushSubscription() {
     const user = currentUser;
     const payload = buildCloudPayload(state);
     pushQueue = pushQueue.then(async () => {
-      setStatus({ mode: "syncing", user: { email: user.email } });
+      if (currentUser?.uid === user.uid) {
+        setStatus({ mode: "syncing", user: { email: user.email } });
+      }
       try {
         await cloud.mergeAndPushCloudState(user.uid, (remote) =>
           buildCloudPayload(mergeState(payload, remote, todayString()))
         );
-        setStatus({ mode: "synced", user: { email: user.email }, lastSyncedAt: new Date().toISOString() });
+        if (currentUser?.uid === user.uid) {
+          setStatus({ mode: "synced", user: { email: user.email }, lastSyncedAt: new Date().toISOString() });
+        }
       } catch (error) {
-        setStatus({ mode: "error", user: { email: user.email }, error: error.message });
+        if (currentUser?.uid === user.uid) {
+          setStatus({ mode: "error", user: { email: user.email }, error: error.message });
+        }
       }
     });
   });
@@ -88,11 +98,12 @@ export async function initSync() {
       try {
         const local = loadState();
         const remote = await cloud.fetchCloudState(user.uid);
-        if (generation !== authGeneration || currentUser?.uid !== user.uid) return;
+        if (!isCurrentAuthRequest(generation, user.uid, authGeneration, currentUser?.uid)) return;
         const merged = mergeState(local, remote, todayString());
         replaceState(merged); // 觸發 onStateChange -> 自動推回雲端，確保雙邊一致
         lastMergedUid = user.uid;
       } catch (error) {
+        if (!isCurrentAuthRequest(generation, user.uid, authGeneration, currentUser?.uid)) return;
         setStatus({ mode: "error", user: { email: user.email }, error: error.message });
       }
     });

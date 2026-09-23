@@ -15,9 +15,10 @@
   程式位置一：js/state-shape.js、js/storage.js
   函式／區塊：emptyProgress、normalizeLearningState、recordAnswer、resetState
   說明：錯題狀態與訂正刪除紀錄。
-  異動：每個教材版本新增 wrongBookResolvedAt 訂正墓碑；錯題加入 updatedAt。
-        答對時寫入墓碑，之後再次答錯會移除舊墓碑。清除紀錄時保留既有墓碑，
-        並替當下仍存在的錯題新增墓碑，避免舊雲端快照復活資料。
+  異動：每個教材版本新增 wrongBookResolvedAt 訂正事件集合；錯題加入
+        updatedAt 與唯一 eventId。答對時記錄實際被訂正的錯誤 eventId，
+        新錯題即使來自時鐘較慢的裝置也不會被舊墓碑誤刪。清除紀錄時另寫入
+        resetAt 世代標記，使整份空白狀態覆蓋舊單元進度、獎勵與學期進度。
 
   修改前：
     progress.wrongBook = mergeWrongBook(progress.wrongBook, entry);
@@ -26,16 +27,21 @@
     progress.wrongBook = mergeWrongBook(progress.wrongBook, {
       ...entry,
       updatedAt: answeredAt,
+      eventId,
     });
-    progress.wrongBookResolvedAt[wrongKey] = answeredAt;
+    progress.wrongBookResolvedAt[wrongKey] = {
+      resolvedAt: answeredAt,
+      eventIds: [previousWrong.eventId],
+    };
 
   ─────────────────────────────────────────────────────────────────────────────
 
   程式位置二：js/sync-logic.js
   函式／區塊：mergeWrongBooks、mergeProgress
   說明：本機與雲端錯題合併規則。
-  異動：同題先選較新的錯誤紀錄，再以訂正墓碑時間判定是否刪除；不同題仍採
-        聯集，因此兩裝置各新增的錯題都會保留。
+  異動：新格式以 eventId 精確排除已訂正的錯誤事件，不依賴不同裝置本機時鐘；
+        舊格式維持時間戳相容判斷。不同題仍採聯集，因此兩裝置各新增的錯題
+        都會保留。resetAt 較新的整份狀態直接勝出，不進行單調聯集合併。
 
   ─────────────────────────────────────────────────────────────────────────────
 
@@ -44,7 +50,7 @@
   說明：Firebase 寫入與跨頁／跨裝置同步。
   異動：本頁 push 依序執行；每次寫入改用 Firestore transaction 讀取最新雲端
         狀態、合併後再寫，避免兩裝置整份 last-write-wins。Auth pull 加入世代與
-        UID 檢查，舊帳號延遲回應不會覆寫目前使用者資料。
+        UID 檢查，成功與失敗分支均忽略舊帳號延遲回應。
 
 --------------------------------------------------------------------------------
 
@@ -63,7 +69,8 @@
   2. 本機已有第一關訂正墓碑、雲端仍有舊錯題時，合併後不得復活第一關。
   3. 兩裝置各新增不同錯題時，transaction 合併後兩題都要保留。
   4. 同一題訂正後再次答錯，較新的錯誤紀錄應重新出現在錯題本。
-  5. 清除資料後再拉取舊雲端快照，已清除錯題不得復活。
-  6. 快速切換登入帳號時，舊 Auth fetch 回應不得覆寫新帳號狀態。
+  5. 清除資料後再拉取舊雲端快照，單元進度、獎勵、學期進度與錯題均不得復活。
+  6. 快速切換登入帳號時，舊 Auth fetch 的成功或失敗回應均不得覆寫新帳號狀態。
+  7. 不同裝置時鐘偏差時，訂正只排除已記錄的錯誤 eventId，新錯誤仍須保留。
 
 ================================================================================

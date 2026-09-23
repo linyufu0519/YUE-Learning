@@ -50,10 +50,30 @@ function entryTimestamp(entry) {
   return entry.updatedAt || (entry.date ? `${entry.date}T00:00:00.000Z` : "");
 }
 
+function normalizeResolution(value) {
+  if (typeof value === "string") return { resolvedAt: value, eventIds: [] };
+  if (!value || typeof value !== "object") return { resolvedAt: "", eventIds: [] };
+  return {
+    resolvedAt: typeof value.resolvedAt === "string" ? value.resolvedAt : "",
+    eventIds: Array.isArray(value.eventIds)
+      ? value.eventIds.filter((id) => typeof id === "string")
+      : [],
+  };
+}
+
 function mergeResolvedAt(localResolvedAt = {}, cloudResolvedAt = {}) {
-  const merged = { ...cloudResolvedAt };
-  for (const [key, timestamp] of Object.entries(localResolvedAt || {})) {
-    if (!merged[key] || timestamp >= merged[key]) merged[key] = timestamp;
+  const merged = {};
+  const keys = new Set([
+    ...Object.keys(localResolvedAt || {}),
+    ...Object.keys(cloudResolvedAt || {}),
+  ]);
+  for (const key of keys) {
+    const local = normalizeResolution(localResolvedAt?.[key]);
+    const cloud = normalizeResolution(cloudResolvedAt?.[key]);
+    merged[key] = {
+      resolvedAt: local.resolvedAt >= cloud.resolvedAt ? local.resolvedAt : cloud.resolvedAt,
+      eventIds: Array.from(new Set([...local.eventIds, ...cloud.eventIds])),
+    };
   }
   return merged;
 }
@@ -72,13 +92,18 @@ export function mergeWrongBooks(
   const map = new Map();
   for (const entry of [...(cloudBook || []), ...(localBook || [])]) {
     const key = wrongKey(entry);
+    const resolution = resolvedAt[key];
+    const resolvedByEvent =
+      entry.eventId && resolution?.eventIds.includes(entry.eventId);
+    const resolvedLegacyEntry =
+      !entry.eventId &&
+      resolution?.resolvedAt &&
+      resolution.resolvedAt > entryTimestamp(entry);
+    if (resolvedByEvent || resolvedLegacyEntry) continue;
     const existing = map.get(key);
     if (!existing || entryTimestamp(entry) >= entryTimestamp(existing)) {
       map.set(key, entry);
     }
-  }
-  for (const [key, entry] of map.entries()) {
-    if (resolvedAt[key] && resolvedAt[key] >= entryTimestamp(entry)) map.delete(key);
   }
   return Array.from(map.values());
 }
@@ -212,6 +237,17 @@ export function mergeState(localState, cloudState, today = todayString()) {
 
   const localNorm = normalizeLearningState(localState);
   const cloudNorm = normalizeLearningState(cloudState);
+  const localResetAt = typeof localState.resetAt === "string" ? localState.resetAt : "";
+  const cloudResetAt = typeof cloudState.resetAt === "string" ? cloudState.resetAt : "";
+
+  // resetAt 是整份學習紀錄的世代標記。世代較新的狀態必須完整勝出，
+  // 不能再經單調聯集合併，否則離線裝置或舊雲端快照會復活清除前的資料。
+  if (localResetAt > cloudResetAt) {
+    return { ...localNorm, updatedAt: new Date().toISOString() };
+  }
+  if (cloudResetAt > localResetAt) {
+    return { ...cloudNorm, updatedAt: new Date().toISOString() };
+  }
 
   return {
     version: pickPreferredVersion(localState, cloudState),
@@ -222,6 +258,7 @@ export function mergeState(localState, cloudState, today = todayString()) {
       localNorm.semesterProgress,
       cloudNorm.semesterProgress
     ),
+    ...(localResetAt ? { resetAt: localResetAt } : {}),
     updatedAt: new Date().toISOString(),
   };
 }

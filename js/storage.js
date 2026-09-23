@@ -75,14 +75,24 @@ export function resetState() {
   const current = loadState();
   const state = defaultLearningState();
   const resetAt = new Date().toISOString();
+  state.resetAt = resetAt;
   for (const version of ["kangxuan", "hanlin"]) {
     state.progress[version].wrongBookResolvedAt = {
       ...current.progress[version].wrongBookResolvedAt,
     };
     for (const entry of current.progress[version].wrongBook) {
-      state.progress[version].wrongBookResolvedAt[
-        `${entry.unitId}::${entry.questionId}`
-      ] = resetAt;
+      const key = `${entry.unitId}::${entry.questionId}`;
+      const existing = state.progress[version].wrongBookResolvedAt[key];
+      const existingEventIds =
+        existing && typeof existing === "object" && Array.isArray(existing.eventIds)
+          ? existing.eventIds
+          : [];
+      state.progress[version].wrongBookResolvedAt[key] = {
+        resolvedAt: resetAt,
+        eventIds: Array.from(
+          new Set([...existingEventIds, ...(entry.eventId ? [entry.eventId] : [])])
+        ),
+      };
     }
   }
   saveState(state);
@@ -146,9 +156,13 @@ export function recordAnswer(payload) {
   const answeredAt = new Date().toISOString();
   const { progress } = getVersionProgress(state, payload.version);
   const unit = getUnitState(progress, payload.unitId);
-  const wasWrong = progress.wrongBook.some(
+  const previousWrong = progress.wrongBook.find(
     (w) => w.unitId === payload.unitId && w.questionId === payload.questionId
   );
+  const wasWrong = Boolean(previousWrong);
+  const eventId =
+    globalThis.crypto?.randomUUID?.() ||
+    `${answeredAt}-${Math.random().toString(36).slice(2)}`;
 
   unit.attempts += 1;
   if (payload.isCorrect) unit.correct += 1;
@@ -174,12 +188,24 @@ export function recordAnswer(payload) {
     isCorrect: payload.isCorrect,
     date: today,
     updatedAt: answeredAt,
+    eventId,
   });
   const wrongKey = `${payload.unitId}::${payload.questionId}`;
   if (payload.isCorrect) {
-    progress.wrongBookResolvedAt[wrongKey] = answeredAt;
-  } else {
-    delete progress.wrongBookResolvedAt[wrongKey];
+    const existing = progress.wrongBookResolvedAt[wrongKey];
+    const existingEventIds =
+      existing && typeof existing === "object" && Array.isArray(existing.eventIds)
+        ? existing.eventIds
+        : [];
+    progress.wrongBookResolvedAt[wrongKey] = {
+      resolvedAt: answeredAt,
+      eventIds: Array.from(
+        new Set([
+          ...existingEventIds,
+          ...(previousWrong?.eventId ? [previousWrong.eventId] : []),
+        ])
+      ),
+    };
   }
 
   state.streak.count = updateStreak(

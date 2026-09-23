@@ -60,6 +60,7 @@ test("resetState 也會觸發 onStateChange（清空要能同步到雲端）", (
   assert.deepEqual(received[0].progress.kangxuan.units, {});
   assert.deepEqual(received[0].progress.kangxuan.wrongBook, []);
   assert.ok(received[0].progress.kangxuan.wrongBookResolvedAt["fraction-divide::sync-q2"]);
+  assert.match(received[0].resetAt, /^\d{4}-\d{2}-\d{2}T/);
   assert.deepEqual(cleared.progress.kangxuan.units, {});
   unsubscribe();
 });
@@ -89,7 +90,8 @@ test("resetState 保留既有訂正墓碑，避免舊雲端錯題日後復活", 
   const before = loadState().progress.kangxuan.wrongBookResolvedAt["kx-unit1::resolved-before-reset"];
   resetState();
   const after = loadState().progress.kangxuan.wrongBookResolvedAt["kx-unit1::resolved-before-reset"];
-  assert.equal(after, before);
+  assert.deepEqual(after.eventIds, before.eventIds);
+  assert.ok(after.resolvedAt >= before.resolvedAt);
 });
 
 test("unsubscribe 之後不再收到通知", () => {
