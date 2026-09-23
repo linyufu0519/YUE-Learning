@@ -9,6 +9,16 @@ import {
 
 const choiceCue = /下列哪(?:一)?個|何者|請選出|哪一項|任一/;
 const forbidden = /小於自己的因數|先完成「|再判斷答案|比較同學寫的/;
+const DIVERSITY_REVIEW_STAGES = [
+  "kx-unit6-stage-04",
+  "kx-unit7-stage-01",
+  "kx-unit7-stage-03",
+  "kx-unit7-stage-04",
+  "kx-unit8-stage-02",
+  "kx-unit8-stage-03",
+  "kx-unit9-stage-04",
+  "kx-unit9-stage-05",
+];
 
 test("正式靜態題庫涵蓋79關且每關5至10題", () => {
   assert.equal(COURSE_STAGES.length, 79);
@@ -66,4 +76,43 @@ test("正式選題不重複湊滿10題並避開近期題優先", () => {
   assert.equal(selected.length, 5);
   assert.equal(new Set(selected.map(({ id }) => id)).size, 5);
   assert.equal(selected.at(-1).id, bank[0].id);
+});
+
+test("八個重點關卡各有至少四種實質認知操作", () => {
+  const allowedLabels = new Set(["直接計算", "選擇列式", "判斷錯誤", "反推角度", "反推半徑", "反推直徑", "反推速率", "反推比例尺", "比較方案", "比較關係", "比較條件"]);
+  for (const stageId of DIVERSITY_REVIEW_STAGES) {
+    const questions = getStaticStageQuestions(stageId);
+    const labels = questions.map((question) => question.concept.split("｜")[0]);
+    assert.equal(questions.length, 5, stageId);
+    assert.ok(labels.every((label) => allowedLabels.has(label)), `${stageId}: ${labels.join("、")}`);
+    assert.ok(new Set(labels).size >= 4, `${stageId} 僅有 ${new Set(labels).size} 種認知操作`);
+    assert.ok(labels.includes("直接計算"), `${stageId} 缺少直接計算`);
+    assert.ok(labels.includes("選擇列式"), `${stageId} 缺少列式辨認`);
+    assert.ok(labels.includes("判斷錯誤"), `${stageId} 缺少錯誤分析`);
+    assert.ok(labels.some((label) => label.startsWith("反推")), `${stageId} 缺少反推題`);
+  }
+});
+
+test("八個重點關卡的反推與判斷題答案維持審核值", () => {
+  const expectedAnswers = {
+    "static-u6-s04-q03": "不正確",
+    "static-u6-s04-q04": "90 度",
+    "static-u7-s01-q03": "不正確",
+    "static-u7-s01-q04": "10",
+    "static-u7-s03-q03": "不正確",
+    "static-u7-s03-q04": "180 度",
+    "static-u7-s04-q03": "不正確",
+    "static-u7-s04-q04": "20 公分",
+    "static-u8-s02-q03": "不正確",
+    "static-u8-s02-q04": "28 公里/時",
+    "static-u8-s03-q03": "不正確",
+    "static-u8-s03-q04": "60 公里/時",
+    "static-u9-s04-q03": "不正確",
+    "static-u9-s04-q04": "1：50000",
+    "static-u9-s05-q03": "不正確",
+    "static-u9-s05-q04": "1：40000",
+  };
+  for (const [id, answer] of Object.entries(expectedAnswers)) {
+    assert.equal(STATIC_STAGE_QUESTIONS.find((question) => question.id === id)?.answer, answer, id);
+  }
 });
