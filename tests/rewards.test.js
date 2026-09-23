@@ -200,11 +200,12 @@ test("applyPracticeSessionReward：練習未全對時任務尚未完成，也不
 
 test("applyPracticeSessionReward：同一天完成過就不會重複發獎（全對 + 修正錯題都達成也只算一次）", () => {
   const rewards = defaultRewards();
-  applyPracticeSessionReward(rewards, { allCorrect: true }, "2026-09-22");
+  const today = new Date().toISOString().slice(0, 10);
+  applyPracticeSessionReward(rewards, { allCorrect: true }, today);
   const xpAfterFirst = rewards.xp;
   const starsAfterFirst = rewards.stars;
   // 同一天再打完一次全對的練習
-  applyPracticeSessionReward(rewards, { allCorrect: true }, "2026-09-22");
+  applyPracticeSessionReward(rewards, { allCorrect: true }, today);
   // 同一天再修正一題錯題
   applyAnswerReward(rewards, {
     unitId: "fraction-multiply",

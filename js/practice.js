@@ -23,7 +23,7 @@ import {
 import { createWrongReviewQuestions, getWrongReviewKey } from "./wrong-review.js";
 import { getStageById } from "./course-stages.js";
 import { isStageUnlocked } from "./stage-progress.js";
-import { selectStageQuestions } from "./stage-question-engine.js";
+import { getStaticStageQuestionCount, selectStaticStageQuestions } from "./static-question-bank.js";
 
 const params = new URLSearchParams(window.location.search);
 const stageId = params.get("stage");
@@ -130,6 +130,8 @@ function renderWrongReviewList() {
 
 function startWrongReview(selectedKey = null) {
   questions = createWrongReviewQuestions(getWrongBook(version), selectedKey, (entry) =>
+    (entry.stageId ? selectStaticStageQuestions({ stageId: entry.stageId, count: 10 })
+      .find((question) => question.id === entry.questionId) : null) ||
     getQuestionBank(version, entry.unitId).find((question) => question.id === entry.questionId)
   );
   if (questions.length === 0) {
@@ -146,9 +148,9 @@ function startWrongReview(selectedKey = null) {
 function startPractice() {
   if (stage) {
     const stats = getSemesterProgress().stageStats?.[stage.id];
-    questions = selectStageQuestions({
+    questions = selectStaticStageQuestions({
       stageId: stage.id,
-      count: PRACTICE_QUESTION_COUNT,
+      count: Math.min(PRACTICE_QUESTION_COUNT, getStaticStageQuestionCount(stage.id)),
       recentQuestionIds: stats?.recentQuestionIds || [],
     });
     currentIndex = 0;

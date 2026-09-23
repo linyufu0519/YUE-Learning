@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createWrongReviewQuestions, getWrongReviewKey } from "../js/wrong-review.js";
+import { generateStageQuestion } from "../js/stage-question-engine.js";
 
 const wrongBook = [
   {
@@ -57,6 +58,26 @@ test("新錯題保存的選擇題型與選項會完整還原，且包含唯一�
   assert.deepEqual(questions[0].choices, ["質數", "合數"]);
   assert.equal(questions[0].choices.filter((choice) => choice === questions[0].answer).length, 1);
   assert.equal(questions[0].hint, "檢查除了 1 和自己之外是否還有其他因數。");
+});
+
+test("明確選擇提示題保存與還原後不會退化成輸入題", () => {
+  const original = generateStageQuestion("kx-unit1-stage-01", "medium", 0);
+  assert.match(original.prompt, /下列哪一個數/);
+  assert.equal(original.type, "choice");
+  const questions = createWrongReviewQuestions([{
+    unitId: original.unitId,
+    stageId: original.stageId,
+    questionId: original.id,
+    prompt: original.prompt,
+    correctAnswer: original.answer,
+    explanation: original.explanation,
+    hint: original.hint,
+    type: original.type,
+    choices: original.choices,
+  }]);
+  assert.equal(questions[0].type, "choice");
+  assert.deepEqual(questions[0].choices, original.choices);
+  assert.equal(questions[0].choices.filter((choice) => choice === questions[0].answer).length, 1);
 });
 
 test("舊錯題沒有題型欄位時會回查原題庫，恢復原選擇題與選項", () => {

@@ -1,6 +1,7 @@
 // 康軒六上關卡題庫純函式引擎；題目只由 stageId、difficulty、index 決定。
 import { COURSE_STAGES, getCourseStage } from "./course-stages.js";
 import { getApprovedCandidatesForStage } from "./approved-candidate-questions.js";
+import { selectStaticStageQuestions } from "./static-question-bank.js";
 
 export const STAGE_DIFFICULTIES = Object.freeze(["easy", "medium", "hard"]);
 
@@ -8,6 +9,7 @@ const PEOPLE = Object.freeze(["小玥", "小安", "志明", "雅婷", "老師", 
 const OBJECTS = Object.freeze(["積木", "卡片", "貼紙", "餅乾"]);
 const PLACES = Object.freeze(["校園", "公園", "文具店", "圖書館", "運動場", "園遊會"]);
 const COGNITIVE_MODES = Object.freeze(["solve", "select", "verify"]);
+export const EXPLICIT_CHOICE_CUE = /(?:哪一個|哪個|何者|請選出|任一)/;
 
 function hashSeed(text) {
   let hash = 2166136261;
@@ -124,7 +126,7 @@ function numericChoices(answer, rng) {
   return shuffle([...new Set(values.map(format))], rng);
 }
 
-function wrongAnswerFor(generated) {
+function candidateWrongAnswer(generated) {
   const answer = String(generated.answer);
   const alternative = generated.choices?.map(String).find((choice) => choice !== answer);
   if (alternative) return alternative;
@@ -138,7 +140,8 @@ function wrongAnswerFor(generated) {
   return opposite[answer] || `不是${answer}`;
 }
 
-function applyCognitiveMode(generated, cognitiveMode, index, rng) {
+// 僅供內部候選題抽樣；學生正式出題只讀 static-question-bank.js。
+function applyCandidateCognitiveMode(generated, cognitiveMode, index, rng) {
   const transformed = { ...generated, cognitiveMode };
   if (cognitiveMode === "solve") {
     transformed.type = "input";
@@ -151,15 +154,76 @@ function applyCognitiveMode(generated, cognitiveMode, index, rng) {
     transformed.choices = generated.choices || numericChoices(generated.answer, rng);
     return transformed;
   }
-  const proposedAnswer = Math.floor(index / 9) % 2 === 0 ? String(generated.answer) : wrongAnswerFor(generated);
+  const proposedAnswer = Math.floor(index / 9) % 2 === 0
+    ? String(generated.answer)
+    : candidateWrongAnswer(generated);
   const isCorrect = proposedAnswer === String(generated.answer);
   transformed.prompt = `先完成「${generated.prompt}」，再判斷答案 ${proposedAnswer} 是否正確。`;
   transformed.answer = isCorrect ? "正確" : "不正確";
   transformed.type = "choice";
   transformed.choices = ["正確", "不正確"];
-  transformed.hint = `先自己完成原題，再比較同學寫的 ${proposedAnswer}。`;
+  transformed.hint = `先自己完成原題，再比較 ${proposedAnswer}。`;
   transformed.explanation = `${generated.hint}${generated.explanation}所以指定答案${isCorrect ? "正確" : "不正確"}。`;
   return transformed;
+}
+
+export const REVIEWED_TEMPLATE_CONTRACTS = Object.freeze({
+  "質數與合數": Object.freeze([
+    { operationKey: "classify-composite", cognitiveMode: "solve", responseType: "choice", answerCardinality: "multiple" },
+    { operationKey: "classify-composite", cognitiveMode: "select", responseType: "choice", answerCardinality: "single" },
+    { operationKey: "classify-composite", cognitiveMode: "verify", responseType: "choice", answerCardinality: "single" },
+    { operationKey: "factor-count", cognitiveMode: "solve", responseType: "input", answerCardinality: "single" },
+    { operationKey: "factor-count", cognitiveMode: "select", responseType: "choice", answerCardinality: "single" },
+    { operationKey: "factor-count", cognitiveMode: "verify", responseType: "choice", answerCardinality: "single" },
+    { operationKey: "prime-application", cognitiveMode: "solve", responseType: "input", answerCardinality: "single" },
+    { operationKey: "prime-application", cognitiveMode: "select", responseType: "choice", answerCardinality: "multiple" },
+    { operationKey: "prime-application", cognitiveMode: "verify", responseType: "choice", answerCardinality: "single" },
+  ].map(Object.freeze)),
+});
+
+function primeCompositeQuestion(operationKey, cognitiveMode, difficulty, index, v) {
+  const composite = v.n * (v.b + 1);
+  const factorList = divisors(composite);
+  const factor = factorList.find((value) => value > 1 && value < composite);
+  const factorChoices = [String(factor), ...nonFactorChoices(composite, factor).map(String)];
+  const proposedCorrect = Math.floor(index / 9) % 2 === 0;
+  const contract = REVIEWED_TEMPLATE_CONTRACTS["質數與合數"].find(
+    (item) => item.operationKey === operationKey && item.cognitiveMode === cognitiveMode
+  );
+  if (!contract) throw new RangeError(`質數與合數缺少模板：${operationKey}/${cognitiveMode}`);
+
+  let generated;
+  if (operationKey === "classify-composite" && cognitiveMode === "solve") {
+    const prompt = difficulty === "hard"
+      ? `${v.person}有 ${composite} 個積木，想平均分成每組至少 2 個。下列哪個每組數量可剛好分完，並能證明 ${composite} 是合數？`
+      : `下列哪一個數是 ${composite} 的因數，且大於 1、小於 ${composite}？`;
+    generated = result(operationKey, "choice", prompt, factor, "逐一試除；選項中只有一個數能整除目標數。", `${composite} ÷ ${factor}＝${composite / factor}，所以 ${factor} 是非平凡因數，能證明 ${composite} 是合數。`, factorChoices);
+  } else if (operationKey === "classify-composite" && cognitiveMode === "select") {
+    generated = result(operationKey, "choice", `判斷 ${composite} 是質數還是合數。`, "合數", `找出 ${composite} 是否有 1 和自己以外的因數。`, `${composite} 可被 ${factor} 整除，所以 ${composite} 是合數。`, ["質數", "合數"]);
+  } else if (operationKey === "classify-composite") {
+    const claimed = proposedCorrect ? "合數" : "質數";
+    generated = result(operationKey, "choice", `有人判斷「${composite} 是${claimed}」。這個判斷正確嗎？`, proposedCorrect ? "正確" : "不正確", `檢查 ${composite} 除了 1 和自己以外，是否還有其他因數。`, `${composite} 可被 ${factor} 整除，所以 ${composite} 是合數；這個判斷${proposedCorrect ? "正確" : "不正確"}。`, ["正確", "不正確"]);
+  } else if (operationKey === "factor-count" && cognitiveMode === "solve") {
+    generated = result(operationKey, "input", `${composite} 的所有因數共有幾個？`, factorList.length, "把能整除的因數成對列出，避免遺漏。", `${composite} 的因數是 ${factorList.join("、")}，共有 ${factorList.length} 個。`);
+  } else if (operationKey === "factor-count" && cognitiveMode === "select") {
+    generated = result(operationKey, "choice", `${composite} 的所有因數共有幾個？`, factorList.length, "把能整除的因數成對列出，避免遺漏。", `${composite} 的因數是 ${factorList.join("、")}，共有 ${factorList.length} 個。`, numericChoices(String(factorList.length), () => 0.37));
+  } else if (operationKey === "factor-count") {
+    const claimedCount = proposedCorrect ? factorList.length : factorList.length + 1;
+    generated = result(operationKey, "choice", `有人說：「${composite} 共有 ${claimedCount} 個因數，所以 ${composite} 不是質數。」這個說法正確嗎？`, proposedCorrect ? "正確" : "不正確", `先列出 ${composite} 的所有因數，再檢查因數個數與結論。`, `${composite} 的因數是 ${factorList.join("、")}，共有 ${factorList.length} 個；因數超過 2 個，所以 ${composite} 不是質數。因此這個說法${proposedCorrect ? "正確" : "不正確"}。`, ["正確", "不正確"]);
+  } else if (operationKey === "prime-application" && cognitiveMode === "solve") {
+    generated = result(operationKey, "input", `${composite} 最小的非平凡因數是多少？`, factor, "從 2 開始依序試除，找第一個能整除的數。", `${composite} ÷ ${factor}＝${composite / factor}，所以最小的非平凡因數是 ${factor}。`);
+  } else if (operationKey === "prime-application" && cognitiveMode === "select") {
+    generated = result(operationKey, "choice", `有人說「${composite} 是質數」。下列哪個反例因數能證明這個說法錯誤？`, factor, "選項中只有一個大於 1、小於原數且能整除原數。", `${composite} ÷ ${factor}＝${composite / factor}，所以 ${factor} 是反例因數。`, factorChoices);
+  } else {
+    const claimedFactor = proposedCorrect ? factor : Number(factorChoices[1]);
+    generated = result(operationKey, "choice", `有人說：「${claimedFactor} 是 ${composite} 的因數，因此 ${composite} 是合數。」這個說法正確嗎？`, proposedCorrect ? "正確" : "不正確", `用 ${composite} 除以 ${claimedFactor}，檢查是否能整除。`, proposedCorrect ? `${composite} ÷ ${factor}＝${composite / factor}，可以整除，所以這個說法正確。` : `${composite} 不能被 ${claimedFactor} 整除，所以這個說法不正確。`, ["正確", "不正確"]);
+  }
+
+  if (generated.type !== contract.responseType) throw new TypeError(`模板型態不符：${operationKey}/${cognitiveMode}`);
+  if (contract.answerCardinality === "multiple" && generated.type !== "choice") {
+    throw new TypeError(`多答案模板不得使用輸入框：${operationKey}/${cognitiveMode}`);
+  }
+  return generated;
 }
 
 function parameters(stageId, difficulty, index, rng) {
@@ -432,13 +496,13 @@ function factorGenerator(topic, operationKey, difficulty, variant, v) {
     const factorChoices = [String(factor), ...distractors.map(String)];
     const hardQuestions = [
       () => result(operationKey, "choice", `${v.person}有 ${composite} 個積木，想平均分成每組至少 2 個。下列哪個每組數量可剛好分完，並能證明 ${composite} 是合數？`, factor, "找一個大於 1、且小於原數的因數。", `${composite} ÷ ${factor} = ${composite / factor}，因此 ${factor} 是非平凡因數，${composite} 是合數。`, factorChoices),
-      () => result(operationKey, "input", `${composite} 的所有因數共有幾個？請先列出因數，再判斷它不是質數。`, factorList.length, "成對尋找能整除原數的數。", `${composite} 的因數是 ${factorList.join("、")}，共有 ${factorList.length} 個；因數超過 2 個，所以是合數。`),
+      () => result(operationKey, "input", `${composite} 的所有因數共有幾個？`, factorList.length, "成對尋找能整除原數的數。", `${composite} 的因數是 ${factorList.join("、")}，共有 ${factorList.length} 個；因數超過 2 個，所以 ${composite} 不是質數。`),
       () => result(operationKey, "choice", `有人說「${composite} 是質數」。下列哪個反例因數能證明這個說法錯誤？`, factor, "只要找到一個不是 1 或原數的因數，就能否定質數說法。", `${composite} ÷ ${factor} = ${composite / factor}，所以 ${factor} 是反例因數。`, factorChoices)
     ];
     return complexity(
       difficulty,
       () => result(operationKey, "choice", `判斷 ${composite} 是質數還是合數。`, "合數", "從 2 開始試除；只要找到一個非平凡因數，就是合數。", `${composite} ÷ ${factor} = ${composite / factor}，所以 ${composite} 是合數。`, ["質數", "合數"]),
-      () => result(operationKey, "choice", `下列哪個數是 ${composite} 大於 1 且小於自己的因數？`, factor, "逐一試除，只有能整除且沒有餘數的選項才是因數。", `${composite} ÷ ${factor} = ${composite / factor}，所以答案是 ${factor}。`, factorChoices),
+      () => result(operationKey, "choice", `下列哪一個數是 ${composite} 的因數，且大於 1、小於 ${composite}？`, factor, "逐一試除，只有能整除且沒有餘數的選項才是因數。", `${composite} ÷ ${factor} = ${composite / factor}，所以答案是 ${factor}。`, factorChoices),
       hardQuestions[variant]
     );
   }
@@ -1038,13 +1102,16 @@ export function generateStageQuestion(stageId, difficulty = "easy", index = 0) {
   const cognitiveMode = COGNITIVE_MODES[Math.floor(index / 3) % COGNITIVE_MODES.length];
   const topic = effectiveTopic(stage);
   const operationKey = operationKeysFor(stage)[variant];
-  const generated = applyCognitiveMode(
-    generatorFor(stage, topic)(topic, operationKey, difficulty, variant, parameters(stageId, difficulty, index, rng)),
-    cognitiveMode,
-    index,
-    rng
-  );
-  generated.concept = `${operationKey}:${cognitiveMode}［${STAGE_STRATEGY_METADATA[stageId].strategyKeys[variant]}］`;
+  const generated = topic === "質數與合數"
+    ? primeCompositeQuestion(operationKey, cognitiveMode, difficulty, index, parameters(stageId, difficulty, index, rng))
+    : applyCandidateCognitiveMode(
+      generatorFor(stage, topic)(topic, operationKey, difficulty, variant, parameters(stageId, difficulty, index, rng)),
+      cognitiveMode,
+      index,
+      rng
+    );
+  const actualMode = cognitiveMode;
+  generated.concept = `${operationKey}:${actualMode}［${STAGE_STRATEGY_METADATA[stageId].strategyKeys[variant]}］`;
   return buildQuestion(stage, difficulty, index, generated, rng);
 }
 
@@ -1078,19 +1145,7 @@ export function getOfficialStageQuestionPool(stageId, difficulty = "easy", count
 }
 
 export function selectStageQuestions({ stageId, count = 10, recentQuestionIds = [], rng = Math.random }) {
-  if (!Number.isInteger(count) || count < 1) throw new RangeError("count 必須是正整數。");
-  if (typeof rng !== "function") throw new TypeError("rng 必須是函式。");
-  const recent = new Set(recentQuestionIds);
-  const weights = { easy: 3, medium: 4, hard: 3 };
-  const allocation = allocateDifficultyCounts(count, weights);
-  const selected = [];
-  for (const level of STAGE_DIFFICULTIES) {
-    const levelCount = allocation[level];
-    if (!levelCount) continue;
-    const pool = generateStageQuestionPool(stageId, level, Math.max(50, levelCount + recent.size));
-    selected.push(...selectBalancedStructures(pool, levelCount, recent, rng));
-  }
-  return shuffle(injectReviewedCandidate(selected, stageId, recent, rng), rng);
+  return selectStaticStageQuestions({ stageId, count, recentQuestionIds, rng });
 }
 
 function injectReviewedCandidate(selected, stageId, recent, rng) {
@@ -1139,7 +1194,8 @@ function selectBalancedStructures(pool, count, recent, rng) {
     group.push(question);
     groups.set(fingerprint, group);
   }
-  const groupsByMode = Object.fromEntries(COGNITIVE_MODES.map((mode) => [mode, []]));
+  const modes = [...COGNITIVE_MODES, "native"];
+  const groupsByMode = Object.fromEntries(modes.map((mode) => [mode, []]));
   for (const [fingerprint, group] of groups.entries()) {
     const mode = fingerprint.match(/mode:([^|]+)/)?.[1];
     groupsByMode[mode].push([
@@ -1147,14 +1203,15 @@ function selectBalancedStructures(pool, count, recent, rng) {
       ...shuffle(group.filter((question) => recent.has(question.id)), rng),
     ]);
   }
-  for (const mode of COGNITIVE_MODES) groupsByMode[mode] = shuffle(groupsByMode[mode], rng);
+  for (const mode of modes) groupsByMode[mode] = shuffle(groupsByMode[mode], rng);
   const selected = [];
   let cycle = 0;
   while (selected.length < count) {
     let added = false;
-    for (const mode of COGNITIVE_MODES) {
+    for (const mode of modes) {
       if (selected.length >= count) break;
       const modeGroups = groupsByMode[mode];
+      if (!modeGroups.length) continue;
       const group = modeGroups[cycle % modeGroups.length];
       const question = group.shift();
       if (question) {

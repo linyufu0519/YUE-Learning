@@ -262,11 +262,11 @@ export function recordPracticeSessionResult(allCorrect, stageId = null, question
   if (stageId) {
     let progress = normalizeSemesterProgress(state.semesterProgress);
     const messages = [];
-    if (questionCount >= 10) {
+    if (questionCount >= 5) {
       const practice = completeStageAction(progress, stageId, "practice");
       progress = practice.progress;
       if (practice.changed || practice.unitBonusXp) {
-        messages.push(buildStageRewardMessage(practice, "本關 10 題練習完成"));
+        messages.push(buildStageRewardMessage(practice, `本關 ${questionCount} 題練習完成`));
       }
     }
     if (allCorrect) {

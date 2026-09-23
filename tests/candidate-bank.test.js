@@ -9,6 +9,7 @@ import {
 } from "../js/candidate-bank.js";
 import { APPROVED_CANDIDATE_QUESTIONS } from "../js/approved-candidate-questions.js";
 import { OCR_REVIEW_DECISIONS, buildOcrReviewSummary } from "../js/candidate-review-decisions.js";
+import { EXPLICIT_CHOICE_CUE } from "../js/stage-question-engine.js";
 
 function candidate(overrides = {}) {
   return {
@@ -130,4 +131,15 @@ test("B/C類不進正式題庫，C類必須保留頁碼、OCR片段與疑點", (
   assert.equal(cItems.length, 1);
   assert.ok(cItems.every((item) => item.page && item.ocrFragment && item.reason));
   assert.match(cItems[0].reason, /無法唯一求出/);
+});
+
+test("OCR核准題也遵守題幹與作答型態契約", () => {
+  for (const question of APPROVED_CANDIDATE_QUESTIONS) {
+    if (EXPLICIT_CHOICE_CUE.test(question.prompt)) assert.equal(question.type, "choice");
+    if (question.type === "input") assert.doesNotMatch(question.prompt, EXPLICIT_CHOICE_CUE);
+    if (question.type === "choice") {
+      assert.ok(question.choices.length >= 2);
+      assert.equal(question.choices.filter((choice) => choice === question.answer).length, 1);
+    }
+  }
 });

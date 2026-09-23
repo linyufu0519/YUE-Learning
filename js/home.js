@@ -49,7 +49,7 @@ function renderTodayTask() {
       ? `目前關卡：第 ${current.order} 關 ${current.topic}`
       : "康軒六上 79 關全部完成！";
     document.getElementById("task-desc").textContent = current
-      ? `依序完成教學、10 題練習，以及全對或修正錯題；完成本關可取得 100 XP。`
+      ? `依序完成教學、本關審核題組，以及全對或修正錯題；完成本關可取得 100 XP。`
       : "太棒了！你已完成全部關卡並取得所有單元獎勵。";
     const btn = document.getElementById("task-btn");
     btn.textContent = current ? "開始目前關卡" : "回顧學習地圖";
@@ -234,12 +234,12 @@ function renderStageRow(stage, progress) {
     <article class="stage-row ${status}">
       <div>
         <strong>第 ${stage.order} 關　${escapeHtml(stage.topic)}</strong>
-        <div class="unit-meta">${label} ・ 教學 ${actions.has("lesson") ? "✅" : "⬜"} ・ 10題 ${actions.has("practice") ? "✅" : "⬜"} ・ 精熟 ${actions.has("mastery") ? "✅" : "⬜"}</div>
+        <div class="unit-meta">${label} ・ 教學 ${actions.has("lesson") ? "✅" : "⬜"} ・ 題組 ${actions.has("practice") ? "✅" : "⬜"} ・ 精熟 ${actions.has("mastery") ? "✅" : "⬜"}</div>
       </div>
       <div class="stage-actions">
         ${disabled ? `<button class="btn secondary" disabled>尚未解鎖</button>` : `
           <a class="btn secondary" href="lesson.html?stage=${stage.id}">教學</a>
-          <a class="btn" href="practice.html?stage=${stage.id}">10題練習</a>
+          <a class="btn" href="practice.html?stage=${stage.id}">本關練習</a>
         `}
       </div>
     </article>
@@ -262,7 +262,7 @@ function renderRewards() {
   const missions = version === "kangxuan" && rewards.semester.currentStage
     ? [
         { title: "完成本關教學與自我檢查", description: "完成後取得 25 XP", done: (getSemesterProgress().completedActions?.[rewards.semester.currentStage.id] || []).includes("lesson"), value: 1, target: 1 },
-        { title: "完成本關 10 題練習", description: "完成後取得 50 XP", done: (getSemesterProgress().completedActions?.[rewards.semester.currentStage.id] || []).includes("practice"), value: 1, target: 1 },
+        { title: "完成本關審核題組", description: "完成後取得 50 XP", done: (getSemesterProgress().completedActions?.[rewards.semester.currentStage.id] || []).includes("practice"), value: 1, target: 1 },
         { title: "本關全部答對或修正錯題", description: "完成後取得 25 XP", done: (getSemesterProgress().completedActions?.[rewards.semester.currentStage.id] || []).includes("mastery"), value: 1, target: 1 },
       ]
     : rewards.missions;

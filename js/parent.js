@@ -70,7 +70,7 @@ function render() {
   const missions = version === "kangxuan" && rewards.semester.currentStage
     ? [
         { title: "完成本關教學與自我檢查", description: "25 XP", done: semesterActions.has("lesson"), value: 1, target: 1 },
-        { title: "完成本關 10 題練習", description: "50 XP", done: semesterActions.has("practice"), value: 1, target: 1 },
+        { title: "完成本關審核題組", description: "50 XP", done: semesterActions.has("practice"), value: 1, target: 1 },
         { title: "本關全部答對或修正錯題", description: "25 XP", done: semesterActions.has("mastery"), value: 1, target: 1 },
       ]
     : rewards.missions;

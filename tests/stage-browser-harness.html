@@ -45,9 +45,13 @@
       const stage = stages[verified.length];
       const prompt = doc.querySelector(".question-prompt")?.textContent || "";
       const title = doc.getElementById("unit-title")?.textContent || "";
-      if (!prompt || !title.includes(stage.topic)) {
+      const progress = doc.getElementById("progress-label")?.textContent || "";
+      const hasAnswerControl = Boolean(
+        doc.querySelector(".choice-btn") || doc.getElementById("answer-input")
+      );
+      if (!prompt || !title.includes(stage.topic) || !progress.includes("/ 5") || !hasAnswerControl) {
         document.getElementById("result").textContent =
-          `stage-browser=failed:${stage.id}:${prompt}`;
+          `stage-browser=failed:${stage.id}:${prompt}:${progress}`;
         return;
       }
       verified.push(stage.id);

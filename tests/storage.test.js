@@ -185,6 +185,15 @@ test("recordPracticeSessionResult 同一天重複全對練習不重複發獎", (
   assert.equal(rewardsAfterSecond.stars, starsAfterFirst);
 });
 
+test("康軒關卡以實際5題題組完成練習，不足5題不算完成", () => {
+  resetState();
+  const stageId = COURSE_STAGES[0].id;
+  recordPracticeSessionResult(false, stageId, 4);
+  assert.equal(loadState().semesterProgress.completedActions?.[stageId]?.includes("practice") || false, false);
+  recordPracticeSessionResult(false, stageId, 5);
+  assert.equal(loadState().semesterProgress.completedActions[stageId].includes("practice"), true);
+});
+
 test("confirmLevelReward 等級已解鎖時家長可確認領取等級獎品", () => {
   resetState();
   const state = loadState();

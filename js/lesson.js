@@ -103,7 +103,7 @@ function buildStageLesson(currentStage, source) {
   );
   return {
     title: `第 ${currentStage.order} 關：${topic}`,
-    intro: `本關專注學習「${topic}」。先理解觀念、完成自我檢查，再進行 10 題練習。`,
+    intro: `本關專注學習「${topic}」。先理解觀念、完成自我檢查，再進行本關審核題組。`,
     concepts: related.length
       ? related
       : [
